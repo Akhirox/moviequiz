@@ -14,11 +14,11 @@ let selectedMode = '';
 
 let chosenActors = [];
 let pixelInterval;
-let currentPixelScale = 0.01;
+let pixelStartTime; // Chronomètre pour le score
 const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0";
 
 // ==========================================
-// 1. INITIALISATION (Sécurisée)
+// 1. INITIALISATION
 // ==========================================
 Promise.all([
     fetch('api/search_index.json').then(r => r.json()),
@@ -38,7 +38,6 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-// Navigation Menu
 document.querySelectorAll('.go-home-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         clearInterval(pixelInterval);
@@ -50,16 +49,13 @@ document.getElementById('mainTitle').addEventListener('click', () => {
     showScreen('screen-home');
 });
 
-// Choix du Mode
 document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // e.currentTarget garantit qu'on cible bien le bouton, même si on clique sur l'émoji dedans
         selectedMode = e.currentTarget.dataset.mode;
         showScreen('screen-difficulty');
     });
 });
 
-// Choix de la Difficulté -> Lancement
 document.querySelectorAll('.btn-diff').forEach(btn => {
     btn.addEventListener('click', (e) => {
         if (searchIndex.length === 0) {
@@ -73,13 +69,12 @@ document.querySelectorAll('.btn-diff').forEach(btn => {
 });
 
 // ==========================================
-// 2. GESTION DE LA SESSION (10 Rounds)
+// 2. GESTION DE LA SESSION
 // ==========================================
 function startSession(minVotes, maxVotes) {
     let pool = searchIndex.filter(m => m.votes >= minVotes && m.votes <= maxVotes);
-    if (pool.length < 10) pool = searchIndex; // Sécurité si pas assez de films
+    if (pool.length < 10) pool = searchIndex; 
     
-    // Mélanger le pool et prendre 10 films
     pool = pool.sort(() => 0.5 - Math.random());
     sessionMovies = pool.slice(0, 10);
     
@@ -107,13 +102,13 @@ function playNextRound() {
             setupGameUI();
         })
         .catch(err => {
-            console.error("Erreur de chargement du film", err);
-            playNextRound(); // Passe au suivant si le fichier est cassé
+            console.error("Erreur de chargement", err);
+            playNextRound(); 
         });
 }
 
 // ==========================================
-// 3. PRÉPARATION DE L'INTERFACE DE JEU
+// 3. PRÉPARATION DE L'INTERFACE
 // ==========================================
 function setupGameUI() {
     showScreen('screen-game');
@@ -124,7 +119,6 @@ function setupGameUI() {
     const poster = document.getElementById('moviePoster');
     const title = document.getElementById('movieTitle');
     
-    // Reset général des inputs
     document.querySelectorAll('.input-group input').forEach(input => {
         input.value = '';
         input.classList.remove('correct-field', 'wrong-field', 'almost-field');
@@ -146,8 +140,8 @@ function setupGameUI() {
         
     } else if (selectedMode === 'guess') {
         document.getElementById('game-guess').classList.remove('hidden');
-        title.style.display = 'none'; // On cache le titre !
-        poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Masquée"; // On cache l'affiche !
+        title.style.display = 'none'; 
+        poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Masquée"; 
         
         document.getElementById('guess-dir-clue').textContent = currentMovie.directors.join(', ') || "?";
         document.getElementById('guess-cast-clue').textContent = currentMovie.actors.join(', ') || "?";
@@ -158,7 +152,7 @@ function setupGameUI() {
         document.getElementById('game-pixel').classList.remove('hidden');
         title.style.display = 'none';
         poster.style.display = 'none'; 
-        document.getElementById('validateBtn').classList.add('hidden'); // Bouton géré en temps réel
+        document.getElementById('validateBtn').classList.add('hidden'); 
         startPixelAnimation();
     }
 }
@@ -190,20 +184,17 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         const iActor = document.getElementById('fill-actor');
         [iDir, iYear, iBudget, iActor].forEach(i => i.disabled = true);
 
-        // Dir
         if(currentMovie.directors && currentMovie.directors.length > 0) {
             roundMax += 1;
             if(checkAnswer(iDir.value, currentMovie.directors)) { iDir.classList.add('correct-field'); roundPoints++; details.push(`✅ Réalisateur : +1`); }
             else { iDir.classList.add('wrong-field'); details.push(`❌ Réal : c'était <span class="text-green">${currentMovie.directors.join(', ')}</span>`); }
         }
-        // Year
         if(currentMovie.release_date && currentMovie.release_date !== "Inconnue") {
             roundMax += 1;
             const realYear = currentMovie.release_date.split('-')[0];
             if(iYear.value.trim() === realYear) { iYear.classList.add('correct-field'); roundPoints++; details.push(`✅ Année : +1`); }
             else { iYear.classList.add('wrong-field'); details.push(`❌ Année : c'était <span class="text-green">${realYear}</span>`); }
         }
-        // Budget
         if(currentMovie.budget && parseInt(currentMovie.budget) > 0) {
             roundMax += 1;
             const realBudget = parseInt(currentMovie.budget);
@@ -215,7 +206,6 @@ document.getElementById('validateBtn').addEventListener('click', () => {
             else if(diffPercent <= 0.10) { iBudget.classList.add('almost-field'); roundPoints++; details.push(`⚠️ Budget (presque) : +1 (C'était ${(realBudget/1000000).toFixed(1)} M$)`); }
             else { iBudget.classList.add('wrong-field'); details.push(`❌ Budget : c'était <span class="text-green">${(realBudget/1000000).toFixed(1)} M$</span>`); }
         }
-        // Actors
         let validActors = currentMovie.actors || [];
         if(validActors.length > 0) {
             roundMax += validActors.length > 5 ? 5 : validActors.length; 
@@ -230,26 +220,24 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         }
 
     } else if (selectedMode === 'guess') {
-        roundMax = 1;
+        roundMax = 10; // Pour ce mode, donner 10 points la bonne réponse équilibre avec le reste
         const iGuess = document.getElementById('guess-title');
         iGuess.disabled = true;
         if(iGuess.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
-            iGuess.classList.add('correct-field'); roundPoints++;
-            details.push(`✅ Bien joué !`);
+            iGuess.classList.add('correct-field'); roundPoints += 10;
+            details.push(`✅ Bien joué ! (+10 pts)`);
         } else {
             iGuess.classList.add('wrong-field');
             details.push(`❌ Faux ! C'était <span class="text-green">${currentMovie.title}</span>`);
         }
-        loadPoster(document.getElementById('moviePoster'), true); // Dévoile l'affiche
+        loadPoster(document.getElementById('moviePoster'), true); 
         document.getElementById('movieTitle').style.display = 'block';
         document.getElementById('movieTitle').textContent = currentMovie.title;
     }
 
-    // Maj du Score
     totalScore += roundPoints;
     maxPossibleScore += roundMax;
     
-    // Affichage résultat du Round
     const res = document.getElementById('roundResult');
     res.classList.remove('hidden');
     document.getElementById('roundScoreText').textContent = `Points gagnés : ${roundPoints}`;
@@ -306,7 +294,6 @@ function setupAutocomplete(inputId, listType, isTagSystem = false) {
         list.innerHTML = ''; 
         if (query.length < 2) { list.classList.add('hidden'); return; }
 
-        // On va chercher dans la bonne liste dynamique
         let currentData = listType === 'names' ? namesIndex : titlesIndex;
         const matches = currentData.filter(n => n.toLowerCase().includes(query)).slice(0, 5);
         
@@ -335,14 +322,13 @@ function setupAutocomplete(inputId, listType, isTagSystem = false) {
     document.addEventListener('click', (e) => { if (e.target !== input) list.classList.add('hidden'); });
 }
 
-// Lier les champs aux bonnes listes de données
 setupAutocomplete('fill-director', 'names', false);
 setupAutocomplete('fill-actor', 'names', true);
 setupAutocomplete('guess-title', 'titles', false);
 setupAutocomplete('pixel-title', 'titles', false);
 
 // ==========================================
-// 6. MODE AFFICHE MYSTÈRE (PIXEL)
+// 6. MODE AFFICHE MYSTÈRE (ÉVOLUTION DU PIXEL)
 // ==========================================
 let pixelCanvas = document.getElementById('pixelCanvas');
 let ctx = pixelCanvas.getContext('2d');
@@ -350,8 +336,6 @@ ctx.imageSmoothingEnabled = false;
 
 function startPixelAnimation() {
     clearInterval(pixelInterval);
-    currentPixelScale = 0.01; 
-    
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = false;
     titleInput.focus();
@@ -367,15 +351,23 @@ function startPixelAnimation() {
         }).catch(() => playNextRound());
 
     img.onload = () => {
+        pixelStartTime = Date.now(); // On lance le chrono !
+        const maxTime = 90000; // 90 secondes max (3x plus long qu'avant)
+
         pixelInterval = setInterval(() => {
-            currentPixelScale += 0.01;
-            if (currentPixelScale >= 1) {
-                currentPixelScale = 1;
+            let timeElapsed = Date.now() - pixelStartTime;
+            let progress = Math.min(timeElapsed / maxTime, 1);
+            
+            // Courbe exponentielle (x^3) : Reste très pixelisé au début, puis s'accélère à la fin
+            let scale = 0.01 + 0.99 * Math.pow(progress, 3);
+
+            if (progress >= 1) {
                 clearInterval(pixelInterval);
                 finishPixelRound(false); 
+            } else {
+                drawPixelated(img, scale);
             }
-            drawPixelated(img, currentPixelScale);
-        }, 300);
+        }, 100); // 100ms = Animation très fluide
     };
 }
 
@@ -405,15 +397,20 @@ function finishPixelRound(won) {
 
     let roundPoints = 0;
     let details = [];
-    maxPossibleScore += 1000;
+    maxPossibleScore += 10; // Score maximum par round de pixel = 10 pts
+
+    let timeElapsedSec = (Date.now() - pixelStartTime) / 1000;
 
     if(won) {
         titleInput.classList.add('correct-field');
-        roundPoints = Math.round((1 - currentPixelScale) * 1000);
+        // Calcul du score : -5s = 10, -10s = 9, -15s = 8... Minimum 1 point.
+        roundPoints = Math.max(1, 10 - Math.floor(timeElapsedSec / 5));
+        
         details.push(`✅ Bien vu ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        details.push(`⏱️ Trouvé en : ${timeElapsedSec.toFixed(1)} secondes`);
     } else {
         titleInput.classList.add('wrong-field');
-        details.push(`❌ Trop tard ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        details.push(`❌ Temps écoulé ! C'était <span class="text-green">${currentMovie.title}</span>`);
     }
 
     totalScore += roundPoints;
