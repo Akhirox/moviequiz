@@ -350,7 +350,7 @@ setupAutocomplete('fill-actor', 'names', true);
 setupAutocomplete('guess-title', 'titles', false);
 setupAutocomplete('pixel-title', 'titles', false);
 // ==========================================
-// 6. MODE AFFICHE MYSTÈRE (PIXEL) - AVEC FIX CORS
+// 6. MODE AFFICHE MYSTÈRE (PIXEL) - FIX DÉFINITIF
 // ==========================================
 let pixelCanvas = document.getElementById('pixelCanvas');
 let ctx = pixelCanvas.getContext('2d');
@@ -364,15 +364,14 @@ function startPixelAnimation() {
     titleInput.focus();
 
     const img = new Image();
-    img.crossOrigin = "Anonymous";
+    img.crossOrigin = "Anonymous"; // Obligatoire pour le Canvas
     
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
         .then(response => response.json())
         .then(data => {
             if (data.poster_path) {
-                // FIX CORS : On utilise un proxy gratuit pour forcer l'autorisation de l'image
-                const tmdbUrl = "https://image.tmdb.org/t/p/w300" + data.poster_path;
-                img.src = "https://corsproxy.io/?" + encodeURIComponent(tmdbUrl);
+                // L'ASTUCE EST ICI : On ajoute "?t=" avec l'heure actuelle pour forcer un téléchargement propre
+                img.src = "https://image.tmdb.org/t/p/w300" + data.poster_path + "?t=" + new Date().getTime();
             }
             else { playNextRound(); return; } 
         }).catch(() => playNextRound());
@@ -396,7 +395,6 @@ function startPixelAnimation() {
         }, 100); 
     };
     
-    // Si même le proxy échoue, on passe au round suivant pour ne pas bloquer le joueur
     img.onerror = () => {
         console.warn("L'image n'a pas pu être chargée, passage au film suivant.");
         playNextRound();
@@ -419,8 +417,10 @@ function finishPixelRound(won) {
     img.crossOrigin = "Anonymous";
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
         .then(r => r.json()).then(d => { 
-            const tmdbUrl = "https://image.tmdb.org/t/p/w300" + d.poster_path;
-            img.src = "https://corsproxy.io/?" + encodeURIComponent(tmdbUrl);
+            // On refait la même astuce ici pour l'affichage de l'image nette
+            if(d.poster_path) {
+                img.src = "https://image.tmdb.org/t/p/w300" + d.poster_path + "?t=" + new Date().getTime();
+            }
         });
     img.onload = () => drawPixelated(img, 1); // Rendu net 100%
 
@@ -454,6 +454,8 @@ function finishPixelRound(won) {
     if(currentRound >= 10) document.getElementById('nextRoundBtn').textContent = "🏆 Voir le score final";
     else document.getElementById('nextRoundBtn').textContent = "🍿 Affiche Suivante";
 }
+
+
 
 // ==========================================
 // 7. ÉCRAN DE FIN DE PARTIE
