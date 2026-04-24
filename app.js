@@ -55,11 +55,12 @@ function startQuiz() {
     document.getElementById('quizContainer').classList.remove('hidden');
     document.getElementById('movieTitle').textContent = currentMovie.title;
     
-    const poster = document.getElementById('moviePoster');
+   const poster = document.getElementById('moviePoster');
     if(currentMovie.poster_path) {
         poster.src = "https://image.tmdb.org/t/p/w300" + currentMovie.poster_path;
     } else {
-        poster.src = "invalid_path"; // Forcera l'attribut onerror du HTML
+        // Au lieu de créer une erreur, on met directement le placeholder
+        poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable"; 
     }
 
     // Réinitialiser les champs textes pour une nouvelle partie
