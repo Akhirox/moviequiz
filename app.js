@@ -3,14 +3,14 @@
 // ==========================================
 let searchIndex = [];
 let namesIndex = [];
-let titlesIndex = []; // Pour l'autocomplétion des titres
+let titlesIndex = [];
 
 let sessionMovies = [];
 let currentRound = 0;
 let currentMovie = null;
 let totalScore = 0;
-let maxPossibleScore = 0; // Calculé dynamiquement selon les infos dispos
-let selectedMode = ''; // 'fill', 'guess', 'pixel'
+let maxPossibleScore = 0;
+let selectedMode = '';
 
 let chosenActors = [];
 let pixelInterval;
@@ -18,7 +18,7 @@ let currentPixelScale = 0.01;
 const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0";
 
 // ==========================================
-// 1. INITIALISATION & NAVIGATION
+// 1. INITIALISATION (Sécurisée)
 // ==========================================
 Promise.all([
     fetch('api/search_index.json').then(r => r.json()),
@@ -26,8 +26,11 @@ Promise.all([
 ]).then(([searchData, namesData]) => {
     searchIndex = searchData;
     namesIndex = namesData;
-    // On extrait tous les titres uniques pour l'autocomplétion Mode Guess & Pixel
     titlesIndex = [...new Set(searchIndex.map(m => m.title))]; 
+    console.log("Données prêtes :", searchIndex.length, "films chargés.");
+}).catch(err => {
+    console.error("Erreur de chargement des JSON :", err);
+    alert("Erreur de chargement des données. Le jeu ne pourra pas se lancer.");
 });
 
 function showScreen(screenId) {
@@ -35,6 +38,7 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
+// Navigation Menu
 document.querySelectorAll('.go-home-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         clearInterval(pixelInterval);
@@ -49,16 +53,21 @@ document.getElementById('mainTitle').addEventListener('click', () => {
 // Choix du Mode
 document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        selectedMode = e.target.dataset.mode;
+        // e.currentTarget garantit qu'on cible bien le bouton, même si on clique sur l'émoji dedans
+        selectedMode = e.currentTarget.dataset.mode;
         showScreen('screen-difficulty');
     });
 });
 
-// Choix de la Difficulté -> Lancement de la Session
+// Choix de la Difficulté -> Lancement
 document.querySelectorAll('.btn-diff').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const min = parseInt(e.target.dataset.min);
-        const max = parseInt(e.target.dataset.max);
+        if (searchIndex.length === 0) {
+            alert("Les films sont encore en cours de chargement, patiente une seconde !");
+            return;
+        }
+        const min = parseInt(e.currentTarget.dataset.min);
+        const max = parseInt(e.currentTarget.dataset.max);
         startSession(min, max);
     });
 });
@@ -96,6 +105,10 @@ function playNextRound() {
         .then(movie => {
             currentMovie = movie;
             setupGameUI();
+        })
+        .catch(err => {
+            console.error("Erreur de chargement du film", err);
+            playNextRound(); // Passe au suivant si le fichier est cassé
         });
 }
 
@@ -144,8 +157,8 @@ function setupGameUI() {
     } else if (selectedMode === 'pixel') {
         document.getElementById('game-pixel').classList.remove('hidden');
         title.style.display = 'none';
-        poster.style.display = 'none'; // On utilise le canvas
-        document.getElementById('validateBtn').classList.add('hidden'); // Géré en temps réel
+        poster.style.display = 'none'; 
+        document.getElementById('validateBtn').classList.add('hidden'); // Bouton géré en temps réel
         startPixelAnimation();
     }
 }
@@ -162,7 +175,7 @@ function loadPoster(imgElement, showReal) {
 }
 
 // ==========================================
-// 4. VALIDATION GÉNÉRALE
+// 4. VALIDATION GÉNÉRALE (Fill & Guess)
 // ==========================================
 document.getElementById('validateBtn').addEventListener('click', () => {
     document.getElementById('validateBtn').classList.add('hidden');
@@ -205,7 +218,7 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         // Actors
         let validActors = currentMovie.actors || [];
         if(validActors.length > 0) {
-            roundMax += validActors.length > 5 ? 5 : validActors.length; // Max théorique arbitraire de 5 pour les acteurs
+            roundMax += validActors.length > 5 ? 5 : validActors.length; 
             let actorScore = 0;
             const tagElements = document.querySelectorAll('.actor-tag');
             chosenActors.forEach((actor, index) => {
@@ -227,16 +240,16 @@ document.getElementById('validateBtn').addEventListener('click', () => {
             iGuess.classList.add('wrong-field');
             details.push(`❌ Faux ! C'était <span class="text-green">${currentMovie.title}</span>`);
         }
-        loadPoster(document.getElementById('moviePoster'), true); // On dévoile l'affiche !
+        loadPoster(document.getElementById('moviePoster'), true); // Dévoile l'affiche
         document.getElementById('movieTitle').style.display = 'block';
         document.getElementById('movieTitle').textContent = currentMovie.title;
     }
 
-    // Mise à jour Score
+    // Maj du Score
     totalScore += roundPoints;
     maxPossibleScore += roundMax;
     
-    // Affichage résultat Round
+    // Affichage résultat du Round
     const res = document.getElementById('roundResult');
     res.classList.remove('hidden');
     document.getElementById('roundScoreText').textContent = `Points gagnés : ${roundPoints}`;
@@ -281,7 +294,7 @@ function renderTags() {
     });
 }
 
-function setupAutocomplete(inputId, dataSource, isTagSystem = false) {
+function setupAutocomplete(inputId, listType, isTagSystem = false) {
     const input = document.getElementById(inputId);
     const list = document.createElement('ul');
     list.className = 'results-list hidden';
@@ -293,7 +306,10 @@ function setupAutocomplete(inputId, dataSource, isTagSystem = false) {
         list.innerHTML = ''; 
         if (query.length < 2) { list.classList.add('hidden'); return; }
 
-        const matches = dataSource.filter(n => n.toLowerCase().includes(query)).slice(0, 5);
+        // On va chercher dans la bonne liste dynamique
+        let currentData = listType === 'names' ? namesIndex : titlesIndex;
+        const matches = currentData.filter(n => n.toLowerCase().includes(query)).slice(0, 5);
+        
         if (matches.length > 0) {
             list.classList.remove('hidden');
             matches.forEach(name => {
@@ -319,10 +335,11 @@ function setupAutocomplete(inputId, dataSource, isTagSystem = false) {
     document.addEventListener('click', (e) => { if (e.target !== input) list.classList.add('hidden'); });
 }
 
-setupAutocomplete('fill-director', namesIndex, false);
-setupAutocomplete('fill-actor', namesIndex, true);
-setupAutocomplete('guess-title', titlesIndex, false);
-setupAutocomplete('pixel-title', titlesIndex, false);
+// Lier les champs aux bonnes listes de données
+setupAutocomplete('fill-director', 'names', false);
+setupAutocomplete('fill-actor', 'names', true);
+setupAutocomplete('guess-title', 'titles', false);
+setupAutocomplete('pixel-title', 'titles', false);
 
 // ==========================================
 // 6. MODE AFFICHE MYSTÈRE (PIXEL)
@@ -346,7 +363,7 @@ function startPixelAnimation() {
         .then(response => response.json())
         .then(data => {
             if (data.poster_path) img.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
-            else { playNextRound(); return; } // Si pas d'affiche, on skip ce round
+            else { playNextRound(); return; } 
         }).catch(() => playNextRound());
 
     img.onload = () => {
@@ -355,7 +372,7 @@ function startPixelAnimation() {
             if (currentPixelScale >= 1) {
                 currentPixelScale = 1;
                 clearInterval(pixelInterval);
-                finishPixelRound(false); // Temps écoulé
+                finishPixelRound(false); 
             }
             drawPixelated(img, currentPixelScale);
         }, 300);
@@ -380,7 +397,6 @@ function finishPixelRound(won) {
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = true;
     
-    // Dévoilement net
     const img = new Image();
     img.crossOrigin = "Anonymous";
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
