@@ -9,68 +9,98 @@
 <body>
     <div class="container">
         <h1 id="mainTitle" class="glow-title clickable">🎬 Movie Quiz</h1>
-        <p class="subtitle">Cherche un film ou laisse le hasard décider !</p>
-
-        <div id="homeMenu" class="search-container">
-            <input type="text" id="searchInput" placeholder="Titre du film (ex: Matrix)..." autocomplete="off">
-            <ul id="searchResults" class="results-list hidden"></ul>
-            
-            <div class="divider">ou</div>
-            
-            <div class="random-section">
-                <p>Tire un film au hasard selon la difficulté :</p>
-                <div class="difficulty-buttons">
-                    <button id="btn-easy" class="btn-diff btn-easy">🟢 Facile</button>
-                    <button id="btn-normal" class="btn-diff btn-normal">🟡 Normal</button>
-                    <button id="btn-hard" class="btn-diff btn-hard">🟠 Difficile</button>
-                    <button id="btn-extreme" class="btn-diff btn-extreme">🔴 Extrême</button>
-                </div>
+        
+        <div id="screen-home" class="screen active">
+            <p class="subtitle">Choisis ton mode de jeu (Session de 10 films)</p>
+            <div class="menu-buttons">
+                <button class="btn-orange mode-btn" data-mode="fill">✍️ Remplir les crédits</button>
+                <button class="btn-orange mode-btn" data-mode="guess">🕵️‍♂️ Titre via Crédits</button>
+                <button class="btn-orange mode-btn" style="background-color: #8a2be2; box-shadow: 0 0 15px rgba(138,43,226,0.5);" data-mode="pixel">👁️ Titre via Affiche Mystère</button>
             </div>
         </div>
 
-        <div id="quizContainer" class="hidden">
+        <div id="screen-difficulty" class="screen hidden">
+            <p class="subtitle" id="diffSubtitle">Choisis la difficulté :</p>
+            <div class="difficulty-buttons">
+                <button class="btn-diff btn-easy" data-min="5000" data-max="999999">🟢 Facile</button>
+                <button class="btn-diff btn-normal" data-min="1000" data-max="4999">🟡 Normal</button>
+                <button class="btn-diff btn-hard" data-min="100" data-max="999">🟠 Difficile</button>
+                <button class="btn-diff btn-extreme" data-min="0" data-max="99">🔴 Extrême</button>
+            </div>
+            <button class="btn-dark mt-20 go-home-btn">Retour</button>
+        </div>
+
+        <div id="screen-game" class="screen hidden">
+            <div class="round-counter glow-text">🎬 Film <span id="roundNumber">1</span>/10</div>
+            
             <div class="movie-header">
-                <img id="moviePoster" src="" alt="Affiche du film" onerror="this.onerror=null; this.src='https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable'">
+                <img id="moviePoster" src="" alt="Affiche" onerror="this.onerror=null; this.src='https://placehold.co/300x450/1a1a1a/ff8c00?text=Mystère'">
                 <h2 id="movieTitle" class="glow-text">Titre du film</h2>
             </div>
-            
-            <div id="questionArea">
+
+            <div id="game-fill" class="game-variant hidden">
                 <div class="input-group">
                     <label>Réalisateur(s) :</label>
-                    <input type="text" id="ans-director" placeholder="Nom du réalisateur..." autocomplete="off">
+                    <input type="text" id="fill-director" placeholder="Nom du réalisateur..." autocomplete="off">
                 </div>
-                
                 <div class="input-group">
                     <label>Année de sortie :</label>
-                    <input type="number" id="ans-year" placeholder="Ex: 1999" autocomplete="off">
+                    <input type="number" id="fill-year" placeholder="Ex: 1999" autocomplete="off">
                 </div>
-
                 <div class="input-group" id="budgetGroup">
-                    <label>Budget (en Millions) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur autorisé)</span></label>
-                    <input type="number" step="0.1" id="ans-budget" placeholder="Ex: 58 (pour 58 millions)" autocomplete="off">
+                    <label>Budget (en Millions) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur)</span></label>
+                    <input type="number" step="0.1" id="fill-budget" placeholder="Ex: 58" autocomplete="off">
                 </div>
-
                 <div class="input-group">
-                    <label>Acteurs (+1 pt par bonne réponse, -1 pt par erreur) :</label>
-                    <input type="text" id="ans-actor" placeholder="Tape un nom et appuie sur Entrée..." autocomplete="off">
+                    <label>Acteurs (+1 pt bonne rép, -1 pt erreur) :</label>
+                    <input type="text" id="fill-actor" placeholder="Tape un nom et Entrée..." autocomplete="off">
                     <div id="actorTags" class="tags-container"></div>
                 </div>
+            </div>
 
-                <button id="validateBtn" class="btn-orange mt-20">✅ Valider mes réponses</button>
-                
-                <div id="resultArea" class="hidden">
-                    <h3 id="scoreText" class="glow-title" style="font-size: 2em;"></h3>
-                    <div id="correctionArea"></div>
+            <div id="game-guess" class="game-variant hidden">
+                <div class="clue-box">
+                    <p><b>🎥 Réalisateur(s) :</b> <span id="guess-dir-clue"></span></p>
+                    <p><b>🎭 Casting :</b> <span id="guess-cast-clue"></span></p>
+                    <p><b>📅 Année :</b> <span id="guess-year-clue"></span></p>
+                    <p><b>🏷️ Genre(s) :</b> <span id="guess-genre-clue"></span></p>
+                </div>
+                <div class="input-group">
+                    <label>Quel est ce film ?</label>
+                    <input type="text" id="guess-title" placeholder="Titre du film..." autocomplete="off">
                 </div>
             </div>
-            
-            <div id="endGameButtons" class="action-buttons hidden">
-                <button id="nextBtn" class="btn-orange">🍿 Film Suivant</button>
-                <button id="menuBtn" class="btn-orange btn-dark">🏠 Retour au Menu</button>
+
+            <div id="game-pixel" class="game-variant hidden">
+                <div class="canvas-container">
+                    <canvas id="pixelCanvas" width="300" height="450"></canvas>
+                </div>
+                <div class="input-group" style="margin-top: 20px;">
+                    <label style="color: #8a2be2;">Quel est ce film ?</label>
+                    <input type="text" id="pixel-title" placeholder="Titre du film..." autocomplete="off">
+                </div>
+            </div>
+
+            <button id="validateBtn" class="btn-orange mt-20">✅ Valider</button>
+
+            <div id="roundResult" class="hidden">
+                <h3 id="roundScoreText" class="glow-title" style="font-size: 1.5em;"></h3>
+                <div id="roundCorrection"></div>
+                <button id="nextRoundBtn" class="btn-orange mt-20">🍿 Film Suivant</button>
             </div>
         </div>
-    </div>
 
+        <div id="screen-recap" class="screen hidden">
+            <h2 class="glow-title" style="font-size: 3em;">Partie Terminée !</h2>
+            <div class="recap-box">
+                <p style="font-size: 1.5em; color: #fff;">Ton score final :</p>
+                <p id="finalScoreText" class="glow-title" style="font-size: 4em; margin: 10px 0;"></p>
+                <p id="finalMessage" style="color: #ffcc80; font-size: 1.2em;"></p>
+            </div>
+            <button class="btn-orange mt-20 go-home-btn" style="font-size: 1.5em; padding: 15px 40px;">🏠 Rejouer</button>
+        </div>
+
+    </div>
     <script src="app.js"></script>
 </body>
 </html>

@@ -10,15 +10,19 @@ body {
 
 .container { max-width: 800px; width: 100%; text-align: center; }
 
+/* Écrans */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.hidden { display: none !important; }
+
 /* Animations et Glow */
 .glow-title {
     color: #ff8c00; text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
     font-size: 3em; margin-bottom: 5px; animation: float 3s ease-in-out infinite;
 }
 .glow-text { color: #ffffff; text-shadow: 0 0 8px #ff8c00; }
-.subtitle { color: #ffcc80; margin-bottom: 30px; }
-
-/* Nouveau : Titre cliquable */
+.subtitle { color: #ffcc80; margin-bottom: 30px; font-size: 1.2em; }
 .clickable { cursor: pointer; transition: 0.2s; }
 .clickable:hover { transform: scale(1.02); }
 
@@ -28,25 +32,8 @@ body {
     100% { transform: translateY(0px); }
 }
 
-.search-container { position: relative; margin: 20px auto; max-width: 500px; }
-.divider { margin: 25px 0; color: #ff8c00; font-weight: bold; font-size: 1.2em; }
-
-#searchInput {
-    width: 100%; padding: 15px; font-size: 18px; border: 1px solid #ff8c00;
-    border-radius: 8px; background-color: #1a1a1a; color: #ffffff; box-sizing: border-box;
-}
-#searchInput:focus { outline: none; box-shadow: 0 0 10px #ff8c00; }
-
-.results-list {
-    position: absolute; top: 100%; left: 0; right: 0; background: #1a1a1a;
-    list-style: none; padding: 0; margin: 5px 0 0 0; border-radius: 8px;
-    max-height: 250px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.8); z-index: 10;
-    border: 1px solid #ff8c00;
-}
-.results-list li { padding: 10px 15px; cursor: pointer; text-align: left; border-bottom: 1px solid #333; color: #ffffff; }
-.results-list li:hover { background-color: #ff8c00; color: #000; font-weight: bold; }
-
-.random-section p { color: #ffcc80; margin-bottom: 15px; }
+/* Boutons Menu & Diff */
+.menu-buttons { display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 0 auto; }
 .difficulty-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 .btn-diff {
     padding: 12px 20px; font-size: 16px; font-weight: bold; border: none;
@@ -69,13 +56,22 @@ body {
     transition: 0.3s; box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
 }
 .btn-orange:hover { background-color: #ffa500; box-shadow: 0 0 25px rgba(255, 140, 0, 0.8); transform: scale(1.05); }
-.btn-dark { background-color: #333; color: white; box-shadow: none; border: 1px solid #555; }
+.btn-dark { background-color: #333; color: white; box-shadow: none; border: 1px solid #555; padding: 10px 20px; border-radius: 8px; cursor: pointer;}
 .btn-dark:hover { background-color: #555; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-
 .mt-20 { margin-top: 20px; }
-.action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
 
-.movie-header { margin: 30px 0; }
+/* Autocompletion */
+.results-list {
+    position: absolute; background: #1a1a1a; list-style: none; padding: 0; margin: 5px 0 0 0;
+    border-radius: 8px; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+    border: 1px solid #ff8c00; width: 100%; z-index: 1000;
+}
+.results-list li { padding: 10px 15px; cursor: pointer; text-align: left; border-bottom: 1px solid #333; color: #ffffff; }
+.results-list li:hover { background-color: #ff8c00; color: #000; font-weight: bold; }
+
+/* Zone Jeu */
+.round-counter { font-size: 1.2em; font-weight: bold; text-align: right; margin-bottom: 10px; }
+.movie-header { margin: 10px 0 30px 0; }
 #moviePoster { max-width: 200px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 140, 0, 0.4); }
 
 .input-group { margin: 15px auto; max-width: 450px; text-align: left; position: relative; }
@@ -87,25 +83,33 @@ body {
 .input-group input:focus { outline: none; box-shadow: 0 0 8px #ff8c00; }
 .input-group input:disabled { opacity: 0.7; }
 
+/* Mode Guess Clues */
+.clue-box { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px; text-align: left; max-width: 450px; margin: 0 auto 20px auto; }
+.clue-box p { margin: 8px 0; color: #ddd; }
+.clue-box span { color: #ff8c00; }
+
+/* Mode Pixel */
+.canvas-container { display: flex; justify-content: center; margin: 20px 0; }
+#pixelCanvas { border-radius: 8px; box-shadow: 0 0 20px rgba(138, 43, 226, 0.5); background-color: #1a1a1a; image-rendering: pixelated; }
+
+/* Styles validation */
 .correct-field { border-color: #28a745 !important; box-shadow: 0 0 10px #28a745 !important; }
 .wrong-field { border-color: #dc3545 !important; box-shadow: 0 0 10px #dc3545 !important; }
 .almost-field { border-color: #ffc107 !important; box-shadow: 0 0 10px #ffc107 !important; }
 
+/* Tags Acteurs */
 .tags-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-.actor-tag {
-    background-color: #ff8c00; color: #121212; padding: 5px 12px; border-radius: 15px;
-    font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px;
-    animation: popIn 0.2s ease-out;
-}
+.actor-tag { background-color: #ff8c00; color: #121212; padding: 5px 12px; border-radius: 15px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; animation: popIn 0.2s ease-out;}
 .actor-tag.correct { background-color: #28a745; color: white; }
 .actor-tag.wrong { background-color: #dc3545; color: white; }
-
 .remove-tag { cursor: pointer; font-weight: bold; color: #121212; }
 .remove-tag:hover { color: #fff; }
 
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-#resultArea { background-color: #1a1a1a; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
-#correctionArea p { margin: 5px 0; color: #ffffff; }
+/* Résultats */
+#roundResult { background-color: #1a1a1a; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; max-width: 500px; margin-left: auto; margin-right: auto;}
+#roundCorrection p { margin: 5px 0; color: #ffffff; }
 .text-green { color: #28a745; font-weight: bold; }
-.hidden { display: none !important; }
+
+.recap-box { background-color: #1a1a1a; border: 2px solid #ff8c00; border-radius: 15px; padding: 40px; margin: 30px auto; max-width: 500px; }
