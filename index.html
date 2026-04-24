@@ -72,12 +72,20 @@
             </div>
 
             <div id="game-pixel" class="game-variant hidden">
+                <div style="display:flex; justify-content: space-between; align-items:center; max-width: 300px; margin: 0 auto 10px;">
+                    <div id="pixelTimer" class="glow-title" style="font-size: 1.5em; color: #dc3545;">⏱️ 60s</div>
+                    <div id="pixelPoints" class="glow-text" style="font-size: 1.2em; color: #28a745; font-weight: bold;">🏆 10 pts</div>
+                </div>
+                
                 <div class="canvas-container">
                     <canvas id="pixelCanvas" width="300" height="450"></canvas>
                 </div>
+                
+                <button id="enhanceBtn" class="btn-orange mt-20" style="background-color: #007bff; box-shadow: 0 0 15px rgba(0,123,255,0.4); width: 100%; max-width: 300px;">🔍 ENHANCE ! (-1 pt)</button>
+                
                 <div class="input-group" style="margin-top: 20px;">
                     <label style="color: #8a2be2;">Quel est ce film ?</label>
-                    <input type="text" id="pixel-title" placeholder="Titre du film..." autocomplete="off">
+                    <input type="text" id="pixel-title" placeholder="Titre original..." autocomplete="off">
                 </div>
             </div>
 

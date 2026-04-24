@@ -13,9 +13,15 @@ let maxPossibleScore = 0;
 let selectedMode = '';
 
 let chosenActors = [];
-let pixelInterval;
-let pixelStartTime;
 const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0";
+
+// Variables spécifiques au Mode Pixel
+let pixelTimerInterval;
+let pixelTimeLeft = 60;
+let currentPixelLevel = 0;
+let currentPixelImage = null; // Stocke l'image brute pour pouvoir la redessiner
+// Les 10 paliers de netteté (de 10 pts à 1 pt)
+const pixelScales = [0.015, 0.025, 0.04, 0.06, 0.09, 0.13, 0.20, 0.35, 0.60, 1.0];
 
 // ==========================================
 // 1. INITIALISATION
@@ -40,12 +46,12 @@ function showScreen(screenId) {
 
 document.querySelectorAll('.go-home-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        clearInterval(pixelInterval);
+        clearInterval(pixelTimerInterval);
         showScreen('screen-home');
     });
 });
 document.getElementById('mainTitle').addEventListener('click', () => {
-    clearInterval(pixelInterval);
+    clearInterval(pixelTimerInterval);
     showScreen('screen-home');
 });
 
@@ -114,7 +120,7 @@ function setupGameUI() {
     showScreen('screen-game');
     document.querySelectorAll('.game-variant').forEach(v => v.classList.add('hidden'));
     document.getElementById('roundResult').classList.add('hidden');
-    document.getElementById('validateBtn').classList.remove('hidden'); // Toujours affiché par défaut
+    document.getElementById('validateBtn').classList.remove('hidden'); 
     
     const poster = document.getElementById('moviePoster');
     const title = document.getElementById('movieTitle');
@@ -152,14 +158,15 @@ function setupGameUI() {
         document.getElementById('game-pixel').classList.remove('hidden');
         title.style.display = 'none';
         poster.style.display = 'none'; 
-        startPixelAnimation();
+        startPixelGame();
     }
 }
 
+// Plus de &language=fr-FR : on veut les affiches originales !
 function loadPoster(imgElement, showReal) {
     if(!showReal) return;
     imgElement.style.display = 'inline';
-    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
+    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`)
         .then(response => response.json())
         .then(data => {
             if (data.poster_path) imgElement.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
@@ -176,16 +183,15 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     let roundMax = 0;
     let details = [];
 
-    // --- MODE PIXEL (Validation Immédiate) ---
+    // --- MODE PIXEL ---
     if (selectedMode === 'pixel') {
         const iPixel = document.getElementById('pixel-title');
-        // Si le titre tape a du sens et correspond
         if(iPixel.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
             finishPixelRound(true);
         } else {
-            finishPixelRound(false); // Mauvaise réponse = perdu
+            finishPixelRound(false); 
         }
-        return; // Coupe l'exécution ici pour laisser finishPixelRound gérer l'affichage
+        return; 
     }
 
     // --- MODE FILL ---
@@ -262,7 +268,6 @@ document.getElementById('validateBtn').addEventListener('click', () => {
 
 document.getElementById('nextRoundBtn').addEventListener('click', playNextRound);
 
-// Permettre la validation rapide via la touche "Entrée" sur les champs Titre (Guess & Pixel)
 ['guess-title', 'pixel-title'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', function(e) {
         if(e.key === 'Enter') {
@@ -349,53 +354,64 @@ setupAutocomplete('fill-director', 'names', false);
 setupAutocomplete('fill-actor', 'names', true);
 setupAutocomplete('guess-title', 'titles', false);
 setupAutocomplete('pixel-title', 'titles', false);
+
 // ==========================================
-// 6. MODE AFFICHE MYSTÈRE (PIXEL) - FIX DÉFINITIF
+// 6. MODE AFFICHE MYSTÈRE (PIXEL MANUEL)
 // ==========================================
 let pixelCanvas = document.getElementById('pixelCanvas');
 let ctx = pixelCanvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-function startPixelAnimation() {
-    clearInterval(pixelInterval);
+function startPixelGame() {
+    clearInterval(pixelTimerInterval);
+    pixelTimeLeft = 60;
+    currentPixelLevel = 0;
+    
+    // Réinitialisation de l'UI
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = false;
     titleInput.value = '';
     titleInput.focus();
-
-    const img = new Image();
-    img.crossOrigin = "Anonymous"; // Obligatoire pour le Canvas
     
-    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
+    document.getElementById('pixelTimer').textContent = `⏱️ ${pixelTimeLeft}s`;
+    document.getElementById('pixelTimer').style.color = "#dc3545";
+    document.getElementById('pixelPoints').textContent = `🏆 10 pts`;
+    
+    const btnEnhance = document.getElementById('enhanceBtn');
+    btnEnhance.disabled = false;
+    btnEnhance.innerText = "🔍 ENHANCE ! (-1 pt)";
+
+    currentPixelImage = new Image();
+    currentPixelImage.crossOrigin = "Anonymous";
+    
+    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`)
         .then(response => response.json())
         .then(data => {
             if (data.poster_path) {
-                // L'ASTUCE EST ICI : On ajoute "?t=" avec l'heure actuelle pour forcer un téléchargement propre
-                img.src = "https://image.tmdb.org/t/p/w300" + data.poster_path + "?t=" + new Date().getTime();
+                // Astuce Cache Buster pour éviter l'erreur CORS
+                currentPixelImage.src = "https://image.tmdb.org/t/p/w300" + data.poster_path + "?t=" + new Date().getTime();
             }
             else { playNextRound(); return; } 
         }).catch(() => playNextRound());
 
-    img.onload = () => {
-        pixelStartTime = Date.now();
-        const maxTime = 30000; // CHRONO 30 SECONDES
+    currentPixelImage.onload = () => {
+        // Premier affichage hyper pixelisé (Level 0)
+        drawPixelated(currentPixelImage, pixelScales[currentPixelLevel]);
 
-        pixelInterval = setInterval(() => {
-            let timeElapsed = Date.now() - pixelStartTime;
-            let progress = Math.min(timeElapsed / maxTime, 1);
+        // Lancement du chrono manuel (1 tick par seconde)
+        pixelTimerInterval = setInterval(() => {
+            pixelTimeLeft--;
+            document.getElementById('pixelTimer').textContent = `⏱️ ${pixelTimeLeft}s`;
             
-            let scale = 0.01 + 0.99 * Math.pow(progress, 2);
+            if(pixelTimeLeft <= 10) document.getElementById('pixelTimer').style.color = "#ff0000";
 
-            if (progress >= 1) {
-                clearInterval(pixelInterval);
-                finishPixelRound(false); 
-            } else {
-                drawPixelated(img, scale);
+            if (pixelTimeLeft <= 0) {
+                finishPixelRound(false); // Temps écoulé !
             }
-        }, 100); 
+        }, 1000); 
     };
     
-    img.onerror = () => {
+    currentPixelImage.onerror = () => {
         console.warn("L'image n'a pas pu être chargée, passage au film suivant.");
         playNextRound();
     };
@@ -408,42 +424,53 @@ function drawPixelated(image, scale) {
     ctx.drawImage(pixelCanvas, 0, 0, scaledW, scaledH, 0, 0, pixelCanvas.width, pixelCanvas.height);
 }
 
+// Clic sur le bouton ENHANCE
+document.getElementById('enhanceBtn').addEventListener('click', () => {
+    // Si on n'est pas encore au niveau max (9)
+    if (currentPixelLevel < 9 && currentPixelImage) {
+        currentPixelLevel++;
+        const currentPoints = 10 - currentPixelLevel;
+        
+        document.getElementById('pixelPoints').textContent = `🏆 ${currentPoints} pts`;
+        drawPixelated(currentPixelImage, pixelScales[currentPixelLevel]);
+        
+        // Si on atteint le max, on bloque le bouton
+        if (currentPixelLevel === 9) {
+            document.getElementById('enhanceBtn').disabled = true;
+            document.getElementById('enhanceBtn').innerText = "Max Resolution !";
+        }
+    }
+});
+
 function finishPixelRound(won) {
-    clearInterval(pixelInterval);
+    clearInterval(pixelTimerInterval);
+    
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = true;
+    document.getElementById('enhanceBtn').disabled = true;
     
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
-        .then(r => r.json()).then(d => { 
-            // On refait la même astuce ici pour l'affichage de l'image nette
-            if(d.poster_path) {
-                img.src = "https://image.tmdb.org/t/p/w300" + d.poster_path + "?t=" + new Date().getTime();
-            }
-        });
-    img.onload = () => drawPixelated(img, 1); // Rendu net 100%
+    // On force l'affichage HD
+    if(currentPixelImage) drawPixelated(currentPixelImage, 1);
 
     let roundPoints = 0;
     let details = [];
     maxPossibleScore += 10; 
-    let timeElapsedSec = (Date.now() - pixelStartTime) / 1000;
 
     if(won) {
         titleInput.classList.add('correct-field');
-        roundPoints = Math.max(1, 10 - Math.floor(timeElapsedSec / 3));
-        details.push(`✅ Bien vu ! C'était <span class="text-green">${currentMovie.title}</span>`);
-        details.push(`⏱️ Trouvé en : ${timeElapsedSec.toFixed(1)} s`);
+        roundPoints = 10 - currentPixelLevel; // Les points dépendent du nombre de clics
+        details.push(`✅ Bien vu !`);
     } else {
         titleInput.classList.add('wrong-field');
-        if (timeElapsedSec >= 30) {
-            details.push(`❌ Temps écoulé (30s) ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        if (pixelTimeLeft <= 0) {
+            details.push(`❌ Temps écoulé (60s) !`);
         } else {
-            details.push(`❌ Mauvaise réponse ! C'était <span class="text-green">${currentMovie.title}</span>`);
+            details.push(`❌ Mauvaise réponse !`);
         }
         roundPoints = 0;
     }
-
+    
+    details.push(`C'était : <span class="text-green">${currentMovie.title}</span>`);
     totalScore += roundPoints;
 
     const res = document.getElementById('roundResult');
@@ -454,8 +481,6 @@ function finishPixelRound(won) {
     if(currentRound >= 10) document.getElementById('nextRoundBtn').textContent = "🏆 Voir le score final";
     else document.getElementById('nextRoundBtn').textContent = "🍿 Affiche Suivante";
 }
-
-
 
 // ==========================================
 // 7. ÉCRAN DE FIN DE PARTIE

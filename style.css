@@ -56,6 +56,10 @@ body {
     transition: 0.3s; box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
 }
 .btn-orange:hover { background-color: #ffa500; box-shadow: 0 0 25px rgba(255, 140, 0, 0.8); transform: scale(1.05); }
+
+/* Nouveau : Boutons désactivés (Enhance) */
+button:disabled { background-color: #555 !important; color: #888 !important; box-shadow: none !important; cursor: not-allowed !important; transform: none !important; }
+
 .btn-dark { background-color: #333; color: white; box-shadow: none; border: 1px solid #555; padding: 10px 20px; border-radius: 8px; cursor: pointer;}
 .btn-dark:hover { background-color: #555; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 .mt-20 { margin-top: 20px; }
@@ -89,7 +93,7 @@ body {
 .clue-box span { color: #ff8c00; }
 
 /* Mode Pixel */
-.canvas-container { display: flex; justify-content: center; margin: 20px 0; }
+.canvas-container { display: flex; justify-content: center; margin: 10px 0; }
 #pixelCanvas { border-radius: 8px; box-shadow: 0 0 20px rgba(138, 43, 226, 0.5); background-color: #1a1a1a; image-rendering: pixelated; }
 
 /* Styles validation */
