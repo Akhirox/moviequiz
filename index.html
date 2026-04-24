@@ -31,27 +31,27 @@
                     <label>Réalisateur(s) :</label>
                     <input type="text" id="ans-director" placeholder="Nom du réalisateur...">
                 </div>
-                <div class="input-group">
-                    <label>Cite un acteur/actrice du film :</label>
-                    <input type="text" id="ans-actor1" placeholder="Acteur 1...">
-                </div>
-                <div class="input-group">
-                    <label>Cite un autre acteur/actrice :</label>
-                    <input type="text" id="ans-actor2" placeholder="Acteur 2...">
-                </div>
+                
                 <div class="input-group">
                     <label>Année de sortie :</label>
                     <input type="number" id="ans-year" placeholder="Ex: 1999">
                 </div>
+
+                <div class="input-group" id="budgetGroup">
+                    <label>Budget (en $) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur autorisé)</span></label>
+                    <input type="number" id="ans-budget" placeholder="Ex: 63000000">
+                </div>
+
                 <div class="input-group">
-                    <label>Genre principal :</label>
-                    <input type="text" id="ans-genre" placeholder="Ex: Action, Comédie...">
+                    <label>Acteurs (+1 pt par bonne réponse, -1 pt par erreur) :</label>
+                    <input type="text" id="ans-actor" placeholder="Tape un nom et appuie sur Entrée...">
+                    <div id="actorTags" class="tags-container"></div>
                 </div>
 
                 <button id="validateBtn" class="btn-orange mt-20">✅ Valider mes réponses</button>
                 
                 <div id="resultArea" class="hidden">
-                    <h3 id="scoreText" class="glow-text"></h3>
+                    <h3 id="scoreText" class="glow-title" style="font-size: 2em;"></h3>
                     <div id="correctionArea"></div>
                 </div>
             </div>
