@@ -14,7 +14,7 @@ let selectedMode = '';
 
 let chosenActors = [];
 let pixelInterval;
-let pixelStartTime; // Chronomètre pour le score
+let pixelStartTime;
 const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0";
 
 // ==========================================
@@ -114,7 +114,7 @@ function setupGameUI() {
     showScreen('screen-game');
     document.querySelectorAll('.game-variant').forEach(v => v.classList.add('hidden'));
     document.getElementById('roundResult').classList.add('hidden');
-    document.getElementById('validateBtn').classList.remove('hidden');
+    document.getElementById('validateBtn').classList.remove('hidden'); // Toujours affiché par défaut
     
     const poster = document.getElementById('moviePoster');
     const title = document.getElementById('movieTitle');
@@ -152,7 +152,6 @@ function setupGameUI() {
         document.getElementById('game-pixel').classList.remove('hidden');
         title.style.display = 'none';
         poster.style.display = 'none'; 
-        document.getElementById('validateBtn').classList.add('hidden'); 
         startPixelAnimation();
     }
 }
@@ -169,7 +168,7 @@ function loadPoster(imgElement, showReal) {
 }
 
 // ==========================================
-// 4. VALIDATION GÉNÉRALE (Fill & Guess)
+// 4. VALIDATION GLOBALE
 // ==========================================
 document.getElementById('validateBtn').addEventListener('click', () => {
     document.getElementById('validateBtn').classList.add('hidden');
@@ -177,6 +176,19 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     let roundMax = 0;
     let details = [];
 
+    // --- MODE PIXEL (Validation Immédiate) ---
+    if (selectedMode === 'pixel') {
+        const iPixel = document.getElementById('pixel-title');
+        // Si le titre tape a du sens et correspond
+        if(iPixel.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
+            finishPixelRound(true);
+        } else {
+            finishPixelRound(false); // Mauvaise réponse = perdu
+        }
+        return; // Coupe l'exécution ici pour laisser finishPixelRound gérer l'affichage
+    }
+
+    // --- MODE FILL ---
     if (selectedMode === 'fill') {
         const iDir = document.getElementById('fill-director');
         const iYear = document.getElementById('fill-year');
@@ -218,9 +230,10 @@ document.getElementById('validateBtn').addEventListener('click', () => {
             roundPoints += actorScore;
             details.push(`🎭 Acteurs : ${actorScore > 0 ? '+' : ''}${actorScore} pt(s). (Casting : <span class="text-green">${validActors.slice(0,5).join(', ')}</span>)`);
         }
-
-    } else if (selectedMode === 'guess') {
-        roundMax = 10; // Pour ce mode, donner 10 points la bonne réponse équilibre avec le reste
+    } 
+    // --- MODE GUESS ---
+    else if (selectedMode === 'guess') {
+        roundMax = 10;
         const iGuess = document.getElementById('guess-title');
         iGuess.disabled = true;
         if(iGuess.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
@@ -248,6 +261,16 @@ document.getElementById('validateBtn').addEventListener('click', () => {
 });
 
 document.getElementById('nextRoundBtn').addEventListener('click', playNextRound);
+
+// Permettre la validation rapide via la touche "Entrée" sur les champs Titre (Guess & Pixel)
+['guess-title', 'pixel-title'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+        if(e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('validateBtn').click();
+        }
+    });
+});
 
 // ==========================================
 // 5. AUTOCOMPLÉTION & TAGS
@@ -313,9 +336,9 @@ function setupAutocomplete(inputId, listType, isTagSystem = false) {
     });
 
     input.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter') {
+        if(e.key === 'Enter' && isTagSystem) {
             e.preventDefault();
-            if(isTagSystem) addActorTag(input.value);
+            addActorTag(input.value);
             list.classList.add('hidden');
         }
     });
@@ -328,7 +351,7 @@ setupAutocomplete('guess-title', 'titles', false);
 setupAutocomplete('pixel-title', 'titles', false);
 
 // ==========================================
-// 6. MODE AFFICHE MYSTÈRE (ÉVOLUTION DU PIXEL)
+// 6. MODE AFFICHE MYSTÈRE (PIXEL)
 // ==========================================
 let pixelCanvas = document.getElementById('pixelCanvas');
 let ctx = pixelCanvas.getContext('2d');
@@ -338,6 +361,7 @@ function startPixelAnimation() {
     clearInterval(pixelInterval);
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = false;
+    titleInput.value = '';
     titleInput.focus();
 
     const img = new Image();
@@ -351,23 +375,23 @@ function startPixelAnimation() {
         }).catch(() => playNextRound());
 
     img.onload = () => {
-        pixelStartTime = Date.now(); // On lance le chrono !
-        const maxTime = 90000; // 90 secondes max (3x plus long qu'avant)
+        pixelStartTime = Date.now();
+        const maxTime = 30000; // CHRONO 30 SECONDES
 
         pixelInterval = setInterval(() => {
             let timeElapsed = Date.now() - pixelStartTime;
             let progress = Math.min(timeElapsed / maxTime, 1);
             
-            // Courbe exponentielle (x^3) : Reste très pixelisé au début, puis s'accélère à la fin
-            let scale = 0.01 + 0.99 * Math.pow(progress, 3);
+            // Courbe plus rapide au début (puissance 2)
+            let scale = 0.01 + 0.99 * Math.pow(progress, 2);
 
             if (progress >= 1) {
                 clearInterval(pixelInterval);
-                finishPixelRound(false); 
+                finishPixelRound(false); // 30s = Temps écoulé
             } else {
                 drawPixelated(img, scale);
             }
-        }, 100); // 100ms = Animation très fluide
+        }, 100); 
     };
 }
 
@@ -378,12 +402,6 @@ function drawPixelated(image, scale) {
     ctx.drawImage(pixelCanvas, 0, 0, scaledW, scaledH, 0, 0, pixelCanvas.width, pixelCanvas.height);
 }
 
-document.getElementById('pixel-title').addEventListener('input', function() {
-    if (this.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
-        finishPixelRound(true);
-    }
-});
-
 function finishPixelRound(won) {
     clearInterval(pixelInterval);
     const titleInput = document.getElementById('pixel-title');
@@ -393,24 +411,27 @@ function finishPixelRound(won) {
     img.crossOrigin = "Anonymous";
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
         .then(r => r.json()).then(d => { img.src = "https://image.tmdb.org/t/p/w300" + d.poster_path; });
-    img.onload = () => drawPixelated(img, 1);
+    img.onload = () => drawPixelated(img, 1); // Rendu net 100%
 
     let roundPoints = 0;
     let details = [];
-    maxPossibleScore += 10; // Score maximum par round de pixel = 10 pts
-
+    maxPossibleScore += 10; 
     let timeElapsedSec = (Date.now() - pixelStartTime) / 1000;
 
     if(won) {
         titleInput.classList.add('correct-field');
-        // Calcul du score : -5s = 10, -10s = 9, -15s = 8... Minimum 1 point.
-        roundPoints = Math.max(1, 10 - Math.floor(timeElapsedSec / 5));
-        
+        // Calcul des points dégressif (1 point perdu toutes les 3 secondes, minimum 1 point)
+        roundPoints = Math.max(1, 10 - Math.floor(timeElapsedSec / 3));
         details.push(`✅ Bien vu ! C'était <span class="text-green">${currentMovie.title}</span>`);
-        details.push(`⏱️ Trouvé en : ${timeElapsedSec.toFixed(1)} secondes`);
+        details.push(`⏱️ Trouvé en : ${timeElapsedSec.toFixed(1)} s`);
     } else {
         titleInput.classList.add('wrong-field');
-        details.push(`❌ Temps écoulé ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        if (timeElapsedSec >= 30) {
+            details.push(`❌ Temps écoulé (30s) ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        } else {
+            details.push(`❌ Mauvaise réponse ! C'était <span class="text-green">${currentMovie.title}</span>`);
+        }
+        roundPoints = 0; // 0 Point !
     }
 
     totalScore += roundPoints;
