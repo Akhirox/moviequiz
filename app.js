@@ -19,8 +19,8 @@ const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0";
 let pixelTimerInterval;
 let pixelTimeLeft = 60;
 let currentPixelLevel = 0;
-let currentPixelImage = null; // Stocke l'image brute pour pouvoir la redessiner
-// Les 10 paliers de netteté (de 10 pts à 1 pt)
+let pixelPenalties = 0; // NOUVEAU : Compteur d'erreurs
+let currentPixelImage = null; 
 const pixelScales = [0.015, 0.025, 0.04, 0.06, 0.09, 0.13, 0.20, 0.35, 0.60, 1.0];
 
 // ==========================================
@@ -162,7 +162,6 @@ function setupGameUI() {
     }
 }
 
-// Plus de &language=fr-FR : on veut les affiches originales !
 function loadPoster(imgElement, showReal) {
     if(!showReal) return;
     imgElement.style.display = 'inline';
@@ -186,10 +185,24 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     // --- MODE PIXEL ---
     if (selectedMode === 'pixel') {
         const iPixel = document.getElementById('pixel-title');
+        
         if(iPixel.value.toLowerCase().trim() === currentMovie.title.toLowerCase().trim()) {
-            finishPixelRound(true);
+            finishPixelRound(true); // Bonne réponse !
         } else {
-            finishPixelRound(false); 
+            // Mauvaise réponse : On pénalise, mais le jeu continue !
+            pixelPenalties++;
+            const currentPoints = Math.max(1, 10 - currentPixelLevel - pixelPenalties);
+            document.getElementById('pixelPoints').textContent = `🏆 ${currentPoints} pts`;
+            
+            // Animation d'erreur
+            iPixel.classList.add('wrong-field');
+            setTimeout(() => iPixel.classList.remove('wrong-field'), 800);
+            
+            iPixel.value = ''; // On vide le champ pour retenter
+            iPixel.focus();
+            
+            // On remet le bouton valider
+            document.getElementById('validateBtn').classList.remove('hidden');
         }
         return; 
     }
@@ -366,8 +379,8 @@ function startPixelGame() {
     clearInterval(pixelTimerInterval);
     pixelTimeLeft = 60;
     currentPixelLevel = 0;
+    pixelPenalties = 0; // Réinitialisation des erreurs !
     
-    // Réinitialisation de l'UI
     const titleInput = document.getElementById('pixel-title');
     titleInput.disabled = false;
     titleInput.value = '';
@@ -388,17 +401,14 @@ function startPixelGame() {
         .then(response => response.json())
         .then(data => {
             if (data.poster_path) {
-                // Astuce Cache Buster pour éviter l'erreur CORS
                 currentPixelImage.src = "https://image.tmdb.org/t/p/w300" + data.poster_path + "?t=" + new Date().getTime();
             }
             else { playNextRound(); return; } 
         }).catch(() => playNextRound());
 
     currentPixelImage.onload = () => {
-        // Premier affichage hyper pixelisé (Level 0)
         drawPixelated(currentPixelImage, pixelScales[currentPixelLevel]);
 
-        // Lancement du chrono manuel (1 tick par seconde)
         pixelTimerInterval = setInterval(() => {
             pixelTimeLeft--;
             document.getElementById('pixelTimer').textContent = `⏱️ ${pixelTimeLeft}s`;
@@ -406,7 +416,7 @@ function startPixelGame() {
             if(pixelTimeLeft <= 10) document.getElementById('pixelTimer').style.color = "#ff0000";
 
             if (pixelTimeLeft <= 0) {
-                finishPixelRound(false); // Temps écoulé !
+                finishPixelRound(false); 
             }
         }, 1000); 
     };
@@ -424,17 +434,15 @@ function drawPixelated(image, scale) {
     ctx.drawImage(pixelCanvas, 0, 0, scaledW, scaledH, 0, 0, pixelCanvas.width, pixelCanvas.height);
 }
 
-// Clic sur le bouton ENHANCE
 document.getElementById('enhanceBtn').addEventListener('click', () => {
-    // Si on n'est pas encore au niveau max (9)
     if (currentPixelLevel < 9 && currentPixelImage) {
         currentPixelLevel++;
-        const currentPoints = 10 - currentPixelLevel;
-        
+        // Prise en compte des pénalités lors du clic
+        const currentPoints = Math.max(1, 10 - currentPixelLevel - pixelPenalties);
         document.getElementById('pixelPoints').textContent = `🏆 ${currentPoints} pts`;
+        
         drawPixelated(currentPixelImage, pixelScales[currentPixelLevel]);
         
-        // Si on atteint le max, on bloque le bouton
         if (currentPixelLevel === 9) {
             document.getElementById('enhanceBtn').disabled = true;
             document.getElementById('enhanceBtn').innerText = "Max Resolution !";
@@ -449,7 +457,6 @@ function finishPixelRound(won) {
     titleInput.disabled = true;
     document.getElementById('enhanceBtn').disabled = true;
     
-    // On force l'affichage HD
     if(currentPixelImage) drawPixelated(currentPixelImage, 1);
 
     let roundPoints = 0;
@@ -458,7 +465,8 @@ function finishPixelRound(won) {
 
     if(won) {
         titleInput.classList.add('correct-field');
-        roundPoints = 10 - currentPixelLevel; // Les points dépendent du nombre de clics
+        // Minimum 1 point si on gagne
+        roundPoints = Math.max(1, 10 - currentPixelLevel - pixelPenalties); 
         details.push(`✅ Bien vu !`);
     } else {
         titleInput.classList.add('wrong-field');
