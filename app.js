@@ -349,9 +349,8 @@ setupAutocomplete('fill-director', 'names', false);
 setupAutocomplete('fill-actor', 'names', true);
 setupAutocomplete('guess-title', 'titles', false);
 setupAutocomplete('pixel-title', 'titles', false);
-
 // ==========================================
-// 6. MODE AFFICHE MYSTÈRE (PIXEL)
+// 6. MODE AFFICHE MYSTÈRE (PIXEL) - AVEC FIX CORS
 // ==========================================
 let pixelCanvas = document.getElementById('pixelCanvas');
 let ctx = pixelCanvas.getContext('2d');
@@ -370,7 +369,11 @@ function startPixelAnimation() {
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
         .then(response => response.json())
         .then(data => {
-            if (data.poster_path) img.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
+            if (data.poster_path) {
+                // FIX CORS : On utilise un proxy gratuit pour forcer l'autorisation de l'image
+                const tmdbUrl = "https://image.tmdb.org/t/p/w300" + data.poster_path;
+                img.src = "https://corsproxy.io/?" + encodeURIComponent(tmdbUrl);
+            }
             else { playNextRound(); return; } 
         }).catch(() => playNextRound());
 
@@ -382,16 +385,21 @@ function startPixelAnimation() {
             let timeElapsed = Date.now() - pixelStartTime;
             let progress = Math.min(timeElapsed / maxTime, 1);
             
-            // Courbe plus rapide au début (puissance 2)
             let scale = 0.01 + 0.99 * Math.pow(progress, 2);
 
             if (progress >= 1) {
                 clearInterval(pixelInterval);
-                finishPixelRound(false); // 30s = Temps écoulé
+                finishPixelRound(false); 
             } else {
                 drawPixelated(img, scale);
             }
         }, 100); 
+    };
+    
+    // Si même le proxy échoue, on passe au round suivant pour ne pas bloquer le joueur
+    img.onerror = () => {
+        console.warn("L'image n'a pas pu être chargée, passage au film suivant.");
+        playNextRound();
     };
 }
 
@@ -410,7 +418,10 @@ function finishPixelRound(won) {
     const img = new Image();
     img.crossOrigin = "Anonymous";
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
-        .then(r => r.json()).then(d => { img.src = "https://image.tmdb.org/t/p/w300" + d.poster_path; });
+        .then(r => r.json()).then(d => { 
+            const tmdbUrl = "https://image.tmdb.org/t/p/w300" + d.poster_path;
+            img.src = "https://corsproxy.io/?" + encodeURIComponent(tmdbUrl);
+        });
     img.onload = () => drawPixelated(img, 1); // Rendu net 100%
 
     let roundPoints = 0;
@@ -420,7 +431,6 @@ function finishPixelRound(won) {
 
     if(won) {
         titleInput.classList.add('correct-field');
-        // Calcul des points dégressif (1 point perdu toutes les 3 secondes, minimum 1 point)
         roundPoints = Math.max(1, 10 - Math.floor(timeElapsedSec / 3));
         details.push(`✅ Bien vu ! C'était <span class="text-green">${currentMovie.title}</span>`);
         details.push(`⏱️ Trouvé en : ${timeElapsedSec.toFixed(1)} s`);
@@ -431,7 +441,7 @@ function finishPixelRound(won) {
         } else {
             details.push(`❌ Mauvaise réponse ! C'était <span class="text-green">${currentMovie.title}</span>`);
         }
-        roundPoints = 0; // 0 Point !
+        roundPoints = 0;
     }
 
     totalScore += roundPoints;
