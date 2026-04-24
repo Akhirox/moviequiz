@@ -8,27 +8,19 @@ body {
     justify-content: center;
 }
 
-.container {
-    max-width: 800px;
-    width: 100%;
-    text-align: center;
-}
+.container { max-width: 800px; width: 100%; text-align: center; }
 
 /* Animations et Glow */
 .glow-title {
-    color: #ff8c00;
-    text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
-    font-size: 3em;
-    margin-bottom: 5px;
-    animation: float 3s ease-in-out infinite;
+    color: #ff8c00; text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
+    font-size: 3em; margin-bottom: 5px; animation: float 3s ease-in-out infinite;
 }
-
-.glow-text {
-    color: #ffffff;
-    text-shadow: 0 0 8px #ff8c00;
-}
-
+.glow-text { color: #ffffff; text-shadow: 0 0 8px #ff8c00; }
 .subtitle { color: #ffcc80; margin-bottom: 30px; }
+
+/* Nouveau : Titre cliquable */
+.clickable { cursor: pointer; transition: 0.2s; }
+.clickable:hover { transform: scale(1.02); }
 
 @keyframes float {
     0% { transform: translateY(0px); }
@@ -36,7 +28,6 @@ body {
     100% { transform: translateY(0px); }
 }
 
-/* Menu de recherche et bouton Hasard */
 .search-container { position: relative; margin: 20px auto; max-width: 500px; }
 .divider { margin: 25px 0; color: #ff8c00; font-weight: bold; font-size: 1.2em; }
 
@@ -55,10 +46,8 @@ body {
 .results-list li { padding: 10px 15px; cursor: pointer; text-align: left; border-bottom: 1px solid #333; color: #ffffff; }
 .results-list li:hover { background-color: #ff8c00; color: #000; font-weight: bold; }
 
-/* Section Difficulté */
 .random-section p { color: #ffcc80; margin-bottom: 15px; }
 .difficulty-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
-
 .btn-diff {
     padding: 12px 20px; font-size: 16px; font-weight: bold; border: none;
     border-radius: 8px; cursor: pointer; transition: 0.3s; color: #121212;
@@ -67,26 +56,25 @@ body {
 
 .btn-easy { background-color: #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.4); }
 .btn-easy:hover { box-shadow: 0 0 20px rgba(40, 167, 69, 0.8); }
-
 .btn-normal { background-color: #ffc107; box-shadow: 0 0 10px rgba(255, 193, 7, 0.4); }
 .btn-normal:hover { box-shadow: 0 0 20px rgba(255, 193, 7, 0.8); }
-
 .btn-hard { background-color: #fd7e14; box-shadow: 0 0 10px rgba(253, 126, 20, 0.4); color: white; }
 .btn-hard:hover { box-shadow: 0 0 20px rgba(253, 126, 20, 0.8); }
-
 .btn-extreme { background-color: #dc3545; box-shadow: 0 0 10px rgba(220, 53, 69, 0.4); color: white; }
 .btn-extreme:hover { box-shadow: 0 0 20px rgba(220, 53, 69, 0.8); }
 
-/* Boutons classiques */
 .btn-orange {
     background-color: #ff8c00; color: #121212; padding: 15px 30px; font-size: 18px;
     font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
     transition: 0.3s; box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
 }
 .btn-orange:hover { background-color: #ffa500; box-shadow: 0 0 25px rgba(255, 140, 0, 0.8); transform: scale(1.05); }
-.mt-20 { margin-top: 20px; }
+.btn-dark { background-color: #333; color: white; box-shadow: none; border: 1px solid #555; }
+.btn-dark:hover { background-color: #555; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-/* Zone Quiz */
+.mt-20 { margin-top: 20px; }
+.action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
+
 .movie-header { margin: 30px 0; }
 #moviePoster { max-width: 200px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 140, 0, 0.4); }
 
@@ -99,12 +87,10 @@ body {
 .input-group input:focus { outline: none; box-shadow: 0 0 8px #ff8c00; }
 .input-group input:disabled { opacity: 0.7; }
 
-/* Styles de validation */
 .correct-field { border-color: #28a745 !important; box-shadow: 0 0 10px #28a745 !important; }
 .wrong-field { border-color: #dc3545 !important; box-shadow: 0 0 10px #dc3545 !important; }
 .almost-field { border-color: #ffc107 !important; box-shadow: 0 0 10px #ffc107 !important; }
 
-/* Zone des tags (Acteurs) */
 .tags-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 .actor-tag {
     background-color: #ff8c00; color: #121212; padding: 5px 12px; border-radius: 15px;
@@ -117,10 +103,7 @@ body {
 .remove-tag { cursor: pointer; font-weight: bold; color: #121212; }
 .remove-tag:hover { color: #fff; }
 
-@keyframes popIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 #resultArea { background-color: #1a1a1a; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
 #correctionArea p { margin: 5px 0; color: #ffffff; }

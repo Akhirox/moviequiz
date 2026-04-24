@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="glow-title">🎬 Movie Quiz</h1>
+        <h1 id="mainTitle" class="glow-title clickable">🎬 Movie Quiz</h1>
         <p class="subtitle">Cherche un film ou laisse le hasard décider !</p>
 
         <div id="homeMenu" class="search-container">
@@ -46,8 +46,8 @@
                 </div>
 
                 <div class="input-group" id="budgetGroup">
-                    <label>Budget (en $) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur autorisé)</span></label>
-                    <input type="number" id="ans-budget" placeholder="Ex: 63000000" autocomplete="off">
+                    <label>Budget (en Millions) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur autorisé)</span></label>
+                    <input type="number" step="0.1" id="ans-budget" placeholder="Ex: 58 (pour 58 millions)" autocomplete="off">
                 </div>
 
                 <div class="input-group">
@@ -64,7 +64,10 @@
                 </div>
             </div>
             
-            <button id="nextBtn" class="btn-orange hidden mt-20">Rejouer un film</button>
+            <div id="endGameButtons" class="action-buttons hidden">
+                <button id="nextBtn" class="btn-orange">🍿 Film Suivant</button>
+                <button id="menuBtn" class="btn-orange btn-dark">🏠 Retour au Menu</button>
+            </div>
         </div>
     </div>
 

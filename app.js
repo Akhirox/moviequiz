@@ -1,16 +1,17 @@
 let searchIndex = [];
 let namesIndex = [];
 let currentMovie = null;
-let chosenActors = []; // Tableau pour stocker les acteurs tapés
+let chosenActors = [];
+let currentMode = { type: 'none' }; // Pour mémoriser comment le film a été choisi
 
-// 1. Initialisation : Chargement des JSON
+// 1. Initialisation
 fetch('api/search_index.json').then(r => r.json()).then(data => searchIndex = data);
 fetch('api/names.json').then(r => r.json()).then(data => namesIndex = data);
 
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 
-// 2. Mécanique de la barre de recherche
+// 2. Barre de recherche
 searchInput.addEventListener('input', function() {
     const query = this.value.toLowerCase().trim();
     searchResults.innerHTML = ''; 
@@ -22,18 +23,23 @@ searchInput.addEventListener('input', function() {
         filteredMovies.forEach(movie => {
             const li = document.createElement('li');
             li.textContent = `${movie.title} (${movie.year})`;
-            li.addEventListener('click', () => selectMovie(movie.id));
+            li.addEventListener('click', () => {
+                currentMode = { type: 'search' }; // On mémorise qu'on a fait une recherche
+                selectMovie(movie.id);
+            });
             searchResults.appendChild(li);
         });
     } else { searchResults.classList.add('hidden'); }
 });
 
-// 3. Mécanique des films au hasard par difficulté
+// 3. Mécanique des films au hasard
 function playRandomMode(minVotes, maxVotes = Infinity) {
     if (searchIndex.length === 0) return;
     
+    currentMode = { type: 'random', min: minVotes, max: maxVotes }; // On mémorise la difficulté
+    
     let pool = searchIndex.filter(m => m.votes >= minVotes && m.votes <= maxVotes);
-    if (pool.length === 0) pool = searchIndex; // Sécurité
+    if (pool.length === 0) pool = searchIndex; 
     
     const randomMovie = pool[Math.floor(Math.random() * pool.length)];
     selectMovie(randomMovie.id);
@@ -44,7 +50,7 @@ document.getElementById('btn-normal').addEventListener('click', () => playRandom
 document.getElementById('btn-hard').addEventListener('click', () => playRandomMode(100, 999));
 document.getElementById('btn-extreme').addEventListener('click', () => playRandomMode(0, 99));
 
-// 4. Charger et afficher le film
+// 4. Lancement du quiz
 function selectMovie(movieId) {
     document.getElementById('homeMenu').classList.add('hidden');
     
@@ -53,36 +59,25 @@ function selectMovie(movieId) {
         .then(movie => {
             currentMovie = movie;
             startQuiz();
-        })
-        .catch(error => console.error("Erreur", error));
+        });
 }
 
 function startQuiz() {
-    // 1. Affichage des zones
     document.getElementById('quizContainer').classList.remove('hidden');
     document.getElementById('movieTitle').textContent = currentMovie.title;
     
-    // 2. Gestion de l'affiche via l'API officielle TMDb
     const poster = document.getElementById('moviePoster');
     const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0"; 
     
-    // On appelle TMDb pour avoir l'affiche la plus récente
     fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
         .then(response => response.json())
         .then(data => {
-            if (data.poster_path) {
-                poster.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
-            } else {
-                // Image de secours si pas de poster_path
-                poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
-            }
+            if (data.poster_path) poster.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
+            else poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
         })
-        .catch(error => {
-            console.error("Erreur API TMDb :", error);
-            poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
-        });
+        .catch(() => poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable");
 
-    // 3. Gestion du Budget (on le cache si la donnée est à 0 ou manquante)
+    // Gestion du Budget
     const budgetGroup = document.getElementById('budgetGroup');
     if(currentMovie.budget && parseInt(currentMovie.budget) > 0) {
         budgetGroup.classList.remove('hidden');
@@ -90,25 +85,23 @@ function startQuiz() {
         budgetGroup.classList.add('hidden');
     }
 
-    // 4. Réinitialisation complète de l'interface
+    // Réinitialiser les champs textes
     document.querySelectorAll('.input-group input').forEach(input => {
         input.value = '';
         input.classList.remove('correct-field', 'wrong-field', 'almost-field');
         input.disabled = false;
     });
     
-    // Vider la liste des acteurs sélectionnés
     chosenActors = []; 
-    renderTags(); // Met à jour l'affichage des tags (les vide)
+    renderTags(); 
     
-    // Réinitialiser les boutons et zones de résultats
     document.getElementById('validateBtn').classList.remove('hidden');
     document.getElementById('resultArea').classList.add('hidden');
-    document.getElementById('nextBtn').classList.add('hidden');
+    document.getElementById('endGameButtons').classList.add('hidden');
     document.getElementById('correctionArea').innerHTML = '';
 }
 
-// 5. Mécanique des Tags Acteurs
+// 5. Autocomplétion et Tags
 function addActorTag(name) {
     if(!name.trim()) return;
     if(!chosenActors.some(a => a.toLowerCase() === name.toLowerCase().trim())) {
@@ -136,7 +129,6 @@ function renderTags() {
     });
 }
 
-// 6. Autocomplétion intelligente
 function setupAutocomplete(inputId, isTagSystem = false) {
     const input = document.getElementById(inputId);
     const list = document.createElement('ul');
@@ -179,14 +171,13 @@ function setupAutocomplete(inputId, isTagSystem = false) {
 setupAutocomplete('ans-director', false);
 setupAutocomplete('ans-actor', true);
 
-// Fonction utilitaire de vérification
 function checkAnswer(userInput, correctAnswersArray) {
     if(!userInput.trim()) return false;
     const user = userInput.toLowerCase().trim();
     return correctAnswersArray.some(ans => ans.toLowerCase().includes(user));
 }
 
-// 7. Validation et Calcul des points
+// 6. Validation
 document.getElementById('validateBtn').addEventListener('click', () => {
     let score = 0;
     let details = [];
@@ -196,11 +187,10 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     const iBudget = document.getElementById('ans-budget');
     const iActor = document.getElementById('ans-actor');
 
-    // Bloquer les champs
     [iDir, iYear, iBudget, iActor].forEach(i => i.disabled = true);
     document.getElementById('validateBtn').classList.add('hidden');
 
-    // --- Réalisateur (+1 pt)
+    // Réalisateur
     if(currentMovie.directors && currentMovie.directors.length > 0) {
         if(checkAnswer(iDir.value, currentMovie.directors)) {
             iDir.classList.add('correct-field'); score++;
@@ -211,7 +201,7 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         }
     }
 
-    // --- Année (+1 pt)
+    // Année
     if(currentMovie.release_date && currentMovie.release_date !== "Inconnue") {
         const realYear = currentMovie.release_date.split('-')[0];
         if(iYear.value.trim() === realYear) {
@@ -223,10 +213,12 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         }
     }
 
-    // --- Budget (+1 pt)
+    // Budget (Conversion des millions)
     if(currentMovie.budget && parseInt(currentMovie.budget) > 0) {
         const realBudget = parseInt(currentMovie.budget);
-        const userBudget = parseInt(iBudget.value) || 0;
+        const realBudgetMillions = (realBudget / 1000000).toFixed(1); // Pour l'affichage de la correction
+        const userBudgetMillions = parseFloat(iBudget.value) || 0;
+        const userBudget = userBudgetMillions * 1000000; // On repasse en dollars complets pour le calcul
         const diffPercent = Math.abs(userBudget - realBudget) / realBudget;
 
         if(diffPercent <= 0.03) { 
@@ -234,14 +226,14 @@ document.getElementById('validateBtn').addEventListener('click', () => {
             details.push(`<span class="text-green">✅ Budget EXACT : +1</span>`);
         } else if(diffPercent <= 0.10) { 
             iBudget.classList.add('almost-field'); score++;
-            details.push(`<span style="color: #ffc107;">⚠️ Budget (presque) : +1 (C'était ${realBudget.toLocaleString()}$)</span>`);
+            details.push(`<span style="color: #ffc107;">⚠️ Budget (presque) : +1 (C'était ${realBudgetMillions} M$)</span>`);
         } else {
             iBudget.classList.add('wrong-field');
-            details.push(`❌ Budget : c'était <span class="text-green">${realBudget.toLocaleString()}$</span>`);
+            details.push(`❌ Budget : c'était <span class="text-green">${realBudgetMillions} M$</span>`);
         }
     }
 
-    // --- Acteurs (+1/-1 par tag)
+    // Acteurs
     let validActors = currentMovie.actors || [];
     let actorScore = 0;
     
@@ -264,24 +256,34 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     } else {
         details.push(`❌ Aucun acteur renseigné.`);
     }
-    
     details.push(`Casting principal : <span class="text-green">${validActors.slice(0,5).join(', ')}</span>`);
 
-    // --- Bonus info : Note du public
     if (currentMovie.vote_average && currentMovie.vote_count) {
         details.push(`<br>⭐ <b>Note du public :</b> <span style="color:#ffc107">${currentMovie.vote_average}/10</span> <i>(basé sur ${currentMovie.vote_count} votes)</i>`);
     }
 
-    // --- Affichage final
     document.getElementById('resultArea').classList.remove('hidden');
     document.getElementById('scoreText').textContent = `Score Total : ${score} pt(s)`;
     document.getElementById('correctionArea').innerHTML = details.map(d => `<p>${d}</p>`).join('');
     
-    document.getElementById('nextBtn').classList.remove('hidden');
+    document.getElementById('endGameButtons').classList.remove('hidden');
 });
 
-// 8. Retour à l'accueil
-document.getElementById('nextBtn').addEventListener('click', () => {
+// 7. Retour au Menu
+function goHome() {
     document.getElementById('quizContainer').classList.add('hidden');
     document.getElementById('homeMenu').classList.remove('hidden');
+    document.getElementById('searchInput').value = '';
+}
+
+document.getElementById('menuBtn').addEventListener('click', goHome);
+document.getElementById('mainTitle').addEventListener('click', goHome); // Le clic sur le grand titre
+
+// 8. Bouton "Film Suivant" (Gère le mode en cours)
+document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentMode.type === 'random') {
+        playRandomMode(currentMode.min, currentMode.max); // Relance la même difficulté
+    } else {
+        goHome(); // Si on cherchait un film spécifique, retour au menu logique
+    }
 });
