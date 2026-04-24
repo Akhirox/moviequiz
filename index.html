@@ -17,7 +17,15 @@
             
             <div class="divider">ou</div>
             
-            <button id="randomBtn" class="btn-orange">🎲 Film au hasard</button>
+            <div class="random-section">
+                <p>Tire un film au hasard selon la difficulté :</p>
+                <div class="difficulty-buttons">
+                    <button id="btn-easy" class="btn-diff btn-easy">🟢 Facile</button>
+                    <button id="btn-normal" class="btn-diff btn-normal">🟡 Normal</button>
+                    <button id="btn-hard" class="btn-diff btn-hard">🟠 Difficile</button>
+                    <button id="btn-extreme" class="btn-diff btn-extreme">🔴 Extrême</button>
+                </div>
+            </div>
         </div>
 
         <div id="quizContainer" class="hidden">
@@ -29,22 +37,22 @@
             <div id="questionArea">
                 <div class="input-group">
                     <label>Réalisateur(s) :</label>
-                    <input type="text" id="ans-director" placeholder="Nom du réalisateur...">
+                    <input type="text" id="ans-director" placeholder="Nom du réalisateur..." autocomplete="off">
                 </div>
                 
                 <div class="input-group">
                     <label>Année de sortie :</label>
-                    <input type="number" id="ans-year" placeholder="Ex: 1999">
+                    <input type="number" id="ans-year" placeholder="Ex: 1999" autocomplete="off">
                 </div>
 
                 <div class="input-group" id="budgetGroup">
                     <label>Budget (en $) : <span style="font-size: 0.8em; color: #aaa;">(10% d'erreur autorisé)</span></label>
-                    <input type="number" id="ans-budget" placeholder="Ex: 63000000">
+                    <input type="number" id="ans-budget" placeholder="Ex: 63000000" autocomplete="off">
                 </div>
 
                 <div class="input-group">
                     <label>Acteurs (+1 pt par bonne réponse, -1 pt par erreur) :</label>
-                    <input type="text" id="ans-actor" placeholder="Tape un nom et appuie sur Entrée...">
+                    <input type="text" id="ans-actor" placeholder="Tape un nom et appuie sur Entrée..." autocomplete="off">
                     <div id="actorTags" class="tags-container"></div>
                 </div>
 

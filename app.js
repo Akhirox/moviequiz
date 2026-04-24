@@ -3,13 +3,14 @@ let namesIndex = [];
 let currentMovie = null;
 let chosenActors = []; // Tableau pour stocker les acteurs tapés
 
-// 1. Initialisation
+// 1. Initialisation : Chargement des JSON
 fetch('api/search_index.json').then(r => r.json()).then(data => searchIndex = data);
 fetch('api/names.json').then(r => r.json()).then(data => namesIndex = data);
 
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 
+// 2. Mécanique de la barre de recherche
 searchInput.addEventListener('input', function() {
     const query = this.value.toLowerCase().trim();
     searchResults.innerHTML = ''; 
@@ -27,18 +28,33 @@ searchInput.addEventListener('input', function() {
     } else { searchResults.classList.add('hidden'); }
 });
 
-document.getElementById('randomBtn').addEventListener('click', () => {
-    if(searchIndex.length === 0) return;
-    const randomMovie = searchIndex[Math.floor(Math.random() * searchIndex.length)];
+// 3. Mécanique des films au hasard par difficulté
+function playRandomMode(minVotes, maxVotes = Infinity) {
+    if (searchIndex.length === 0) return;
+    
+    let pool = searchIndex.filter(m => m.votes >= minVotes && m.votes <= maxVotes);
+    if (pool.length === 0) pool = searchIndex; // Sécurité
+    
+    const randomMovie = pool[Math.floor(Math.random() * pool.length)];
     selectMovie(randomMovie.id);
-});
+}
 
-// 2. Lancement du Quiz
+document.getElementById('btn-easy').addEventListener('click', () => playRandomMode(5000));
+document.getElementById('btn-normal').addEventListener('click', () => playRandomMode(1000, 4999));
+document.getElementById('btn-hard').addEventListener('click', () => playRandomMode(100, 999));
+document.getElementById('btn-extreme').addEventListener('click', () => playRandomMode(0, 99));
+
+// 4. Charger et afficher le film
 function selectMovie(movieId) {
     document.getElementById('homeMenu').classList.add('hidden');
+    
     fetch(`api/movies/${movieId}.json`)
-        .then(r => r.json())
-        .then(movie => { currentMovie = movie; startQuiz(); });
+        .then(response => response.json())
+        .then(movie => {
+            currentMovie = movie;
+            startQuiz();
+        })
+        .catch(error => console.error("Erreur", error));
 }
 
 function startQuiz() {
@@ -46,8 +62,11 @@ function startQuiz() {
     document.getElementById('movieTitle').textContent = currentMovie.title;
     
     const poster = document.getElementById('moviePoster');
-    if(currentMovie.poster_path) poster.src = "https://image.tmdb.org/t/p/w300" + currentMovie.poster_path;
-    else poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
+    if(currentMovie.poster_path) {
+        poster.src = "https://image.tmdb.org/t/p/w300" + currentMovie.poster_path;
+    } else {
+        poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
+    }
 
     // Gestion du Budget (on le cache si = 0)
     const budgetGroup = document.getElementById('budgetGroup');
@@ -57,15 +76,15 @@ function startQuiz() {
         budgetGroup.classList.add('hidden');
     }
 
-    // Réinitialisation de l'interface
+    // Réinitialiser les champs textes
     document.querySelectorAll('.input-group input').forEach(input => {
         input.value = '';
         input.classList.remove('correct-field', 'wrong-field', 'almost-field');
         input.disabled = false;
     });
     
-    chosenActors = []; // Vider les acteurs
-    renderTags(); // Effacer les tags visuels
+    chosenActors = []; 
+    renderTags(); 
     
     document.getElementById('validateBtn').classList.remove('hidden');
     document.getElementById('resultArea').classList.add('hidden');
@@ -73,15 +92,14 @@ function startQuiz() {
     document.getElementById('correctionArea').innerHTML = '';
 }
 
-// 3. Mécanique des Tags Acteurs
+// 5. Mécanique des Tags Acteurs
 function addActorTag(name) {
     if(!name.trim()) return;
-    // Vérifier si l'acteur est déjà dans la liste
     if(!chosenActors.some(a => a.toLowerCase() === name.toLowerCase().trim())) {
         chosenActors.push(name.trim());
         renderTags();
     }
-    document.getElementById('ans-actor').value = ''; // On vide le champ
+    document.getElementById('ans-actor').value = ''; 
 }
 
 function renderTags() {
@@ -93,7 +111,7 @@ function renderTags() {
         span.innerHTML = `${actor} <span class="remove-tag">✖</span>`;
         
         span.querySelector('.remove-tag').addEventListener('click', () => {
-            if(!document.getElementById('ans-actor').disabled) { // Si le quiz n'est pas encore validé
+            if(!document.getElementById('ans-actor').disabled) {
                 chosenActors.splice(index, 1);
                 renderTags();
             }
@@ -102,7 +120,7 @@ function renderTags() {
     });
 }
 
-// 4. Autocomplétion intelligente
+// 6. Autocomplétion intelligente
 function setupAutocomplete(inputId, isTagSystem = false) {
     const input = document.getElementById(inputId);
     const list = document.createElement('ul');
@@ -131,7 +149,6 @@ function setupAutocomplete(inputId, isTagSystem = false) {
         } else list.classList.add('hidden');
     });
 
-    // Écouter la touche Entrée pour les acteurs
     input.addEventListener('keydown', (e) => {
         if(e.key === 'Enter' && isTagSystem) {
             e.preventDefault();
@@ -144,15 +161,16 @@ function setupAutocomplete(inputId, isTagSystem = false) {
 }
 
 setupAutocomplete('ans-director', false);
-setupAutocomplete('ans-actor', true); // True = active le système de tags au clic/entrée
+setupAutocomplete('ans-actor', true);
 
+// Fonction utilitaire de vérification
 function checkAnswer(userInput, correctAnswersArray) {
     if(!userInput.trim()) return false;
     const user = userInput.toLowerCase().trim();
     return correctAnswersArray.some(ans => ans.toLowerCase().includes(user));
 }
 
-// 5. Validation et Calcul des points
+// 7. Validation et Calcul des points
 document.getElementById('validateBtn').addEventListener('click', () => {
     let score = 0;
     let details = [];
@@ -195,10 +213,10 @@ document.getElementById('validateBtn').addEventListener('click', () => {
         const userBudget = parseInt(iBudget.value) || 0;
         const diffPercent = Math.abs(userBudget - realBudget) / realBudget;
 
-        if(diffPercent <= 0.03) { // 3% -> Exact
+        if(diffPercent <= 0.03) { 
             iBudget.classList.add('correct-field'); score++;
             details.push(`<span class="text-green">✅ Budget EXACT : +1</span>`);
-        } else if(diffPercent <= 0.10) { // 10% -> Presque
+        } else if(diffPercent <= 0.10) { 
             iBudget.classList.add('almost-field'); score++;
             details.push(`<span style="color: #ffc107;">⚠️ Budget (presque) : +1 (C'était ${realBudget.toLocaleString()}$)</span>`);
         } else {
@@ -211,7 +229,6 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     let validActors = currentMovie.actors || [];
     let actorScore = 0;
     
-    // On met à jour visuellement les tags
     const tagElements = document.querySelectorAll('.actor-tag');
     chosenActors.forEach((actor, index) => {
         if(checkAnswer(actor, validActors)) {
@@ -234,6 +251,11 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     
     details.push(`Casting principal : <span class="text-green">${validActors.slice(0,5).join(', ')}</span>`);
 
+    // --- Bonus info : Note du public
+    if (currentMovie.vote_average && currentMovie.vote_count) {
+        details.push(`<br>⭐ <b>Note du public :</b> <span style="color:#ffc107">${currentMovie.vote_average}/10</span> <i>(basé sur ${currentMovie.vote_count} votes)</i>`);
+    }
+
     // --- Affichage final
     document.getElementById('resultArea').classList.remove('hidden');
     document.getElementById('scoreText').textContent = `Score Total : ${score} pt(s)`;
@@ -242,6 +264,7 @@ document.getElementById('validateBtn').addEventListener('click', () => {
     document.getElementById('nextBtn').classList.remove('hidden');
 });
 
+// 8. Retour à l'accueil
 document.getElementById('nextBtn').addEventListener('click', () => {
     document.getElementById('quizContainer').classList.add('hidden');
     document.getElementById('homeMenu').classList.remove('hidden');
