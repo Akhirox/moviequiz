@@ -58,17 +58,31 @@ function selectMovie(movieId) {
 }
 
 function startQuiz() {
+    // 1. Affichage des zones
     document.getElementById('quizContainer').classList.remove('hidden');
     document.getElementById('movieTitle').textContent = currentMovie.title;
     
+    // 2. Gestion de l'affiche via l'API officielle TMDb
     const poster = document.getElementById('moviePoster');
-    if(currentMovie.poster_path) {
-        poster.src = "https://image.tmdb.org/t/p/w300" + currentMovie.poster_path;
-    } else {
-        poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
-    }
+    const API_KEY = "5dc5083a717529577dfea77fd9a4a0e0"; 
+    
+    // On appelle TMDb pour avoir l'affiche la plus récente
+    fetch(`https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}&language=fr-FR`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.poster_path) {
+                poster.src = "https://image.tmdb.org/t/p/w300" + data.poster_path;
+            } else {
+                // Image de secours si pas de poster_path
+                poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
+            }
+        })
+        .catch(error => {
+            console.error("Erreur API TMDb :", error);
+            poster.src = "https://placehold.co/300x450/1a1a1a/ff8c00?text=Affiche+Introuvable";
+        });
 
-    // Gestion du Budget (on le cache si = 0)
+    // 3. Gestion du Budget (on le cache si la donnée est à 0 ou manquante)
     const budgetGroup = document.getElementById('budgetGroup');
     if(currentMovie.budget && parseInt(currentMovie.budget) > 0) {
         budgetGroup.classList.remove('hidden');
@@ -76,16 +90,18 @@ function startQuiz() {
         budgetGroup.classList.add('hidden');
     }
 
-    // Réinitialiser les champs textes
+    // 4. Réinitialisation complète de l'interface
     document.querySelectorAll('.input-group input').forEach(input => {
         input.value = '';
         input.classList.remove('correct-field', 'wrong-field', 'almost-field');
         input.disabled = false;
     });
     
+    // Vider la liste des acteurs sélectionnés
     chosenActors = []; 
-    renderTags(); 
+    renderTags(); // Met à jour l'affichage des tags (les vide)
     
+    // Réinitialiser les boutons et zones de résultats
     document.getElementById('validateBtn').classList.remove('hidden');
     document.getElementById('resultArea').classList.add('hidden');
     document.getElementById('nextBtn').classList.add('hidden');
