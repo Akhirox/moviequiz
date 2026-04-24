@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Movie Quiz</h1>
+        <p>Cherche un film pour tester tes connaissances !</p>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Titre du film (ex: Matrix)..." autocomplete="off">
+            <ul id="searchResults" class="results-list hidden"></ul>
+        </div>
+
+        <div id="quizContainer" class="hidden">
+            <div class="movie-header">
+                <img id="moviePoster" src="" alt="Affiche du film">
+                <h2 id="movieTitle">Titre du film</h2>
+            </div>
+            
+            <div id="questionArea">
+                <h3 id="questionText">La question apparaitra ici</h3>
+                <div id="answersContainer" class="answers-grid">
+                    </div>
+            </div>
+            
+            <button id="nextBtn" class="hidden">Question suivante</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
