@@ -1,31 +1,22 @@
 let searchIndex = [];
+let currentMovie = null;
 
-// 1. Charger l'index de recherche au lancement de la page
+// 1. Charger l'index de recherche au lancement
 fetch('api/search_index.json')
     .then(response => response.json())
-    .then(data => {
-        searchIndex = data;
-        console.log("Index chargé avec succès :", searchIndex.length, "films.");
-    });
+    .then(data => { searchIndex = data; });
 
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
+const randomBtn = document.getElementById('randomBtn');
 
-// 2. Écouter ce que l'utilisateur tape
+// 2. Mécanique de la barre de recherche
 searchInput.addEventListener('input', function() {
     const query = this.value.toLowerCase();
-    searchResults.innerHTML = ''; // On vide les résultats précédents
-    
-    if (query.length < 2) {
-        searchResults.classList.add('hidden');
-        return;
-    }
+    searchResults.innerHTML = ''; 
+    if (query.length < 2) { searchResults.classList.add('hidden'); return; }
 
-    // Chercher les films qui correspondent
-    const filteredMovies = searchIndex.filter(movie => 
-        movie.title.toLowerCase().includes(query)
-    ).slice(0, 10); // On garde les 10 premiers résultats pour ne pas surcharger
-
+    const filteredMovies = searchIndex.filter(m => m.title.toLowerCase().includes(query)).slice(0, 8);
     if (filteredMovies.length > 0) {
         searchResults.classList.remove('hidden');
         filteredMovies.forEach(movie => {
@@ -39,97 +30,142 @@ searchInput.addEventListener('input', function() {
     }
 });
 
-let currentMovie = null;
+// 3. Mécanique du Film au Hasard
+randomBtn.addEventListener('click', () => {
+    if(searchIndex.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * searchIndex.length);
+    const randomMovie = searchIndex[randomIndex];
+    selectMovie(randomMovie.id);
+});
 
-// 3. Quand on clique sur un film
+// 4. Charger et afficher le film
 function selectMovie(movieId) {
-    searchResults.classList.add('hidden');
-    searchInput.value = ''; // On vide la barre
+    document.getElementById('homeMenu').classList.add('hidden');
     
-    // On cache la zone de recherche pour laisser place au jeu
-    document.querySelector('.search-container').classList.add('hidden'); 
-
-    // On va chercher le fichier JSON unique de CE film
     fetch(`api/movies/${movieId}.json`)
         .then(response => response.json())
         .then(movie => {
             currentMovie = movie;
             startQuiz();
         })
-        .catch(error => console.error("Erreur de chargement des données du film", error));
+        .catch(error => console.error("Erreur", error));
 }
 
-// 4. Initialisation de l'interface du quiz
 function startQuiz() {
     document.getElementById('quizContainer').classList.remove('hidden');
     document.getElementById('movieTitle').textContent = currentMovie.title;
     
     const poster = document.getElementById('moviePoster');
-    // On utilise l'URL de base de l'API TMDb pour afficher les affiches
     if(currentMovie.poster_path) {
         poster.src = "https://image.tmdb.org/t/p/w300" + currentMovie.poster_path;
-        poster.style.display = "inline";
     } else {
-        poster.style.display = "none";
+        poster.src = "invalid_path"; // Forcera l'attribut onerror du HTML
     }
 
-    // On lance la première question !
-    askDirectorQuestion();
-}
-
-// 5. Génération d'une question sur le réalisateur
-function askDirectorQuestion() {
-    const questionText = document.getElementById('questionText');
-    const answersContainer = document.getElementById('answersContainer');
-    const nextBtn = document.getElementById('nextBtn');
-    
-    answersContainer.innerHTML = ''; // Nettoyer les anciens boutons
-    nextBtn.classList.add('hidden');
-
-    // Sécurité : si le film n'a pas de réalisateur dans la base
-    if (!currentMovie.directors || currentMovie.directors.length === 0) {
-        questionText.textContent = "Mince, le réalisateur n'est pas renseigné pour ce film.";
-        nextBtn.textContent = "Chercher un autre film";
-        nextBtn.classList.remove('hidden');
-        return;
-    }
-
-    const realDirector = currentMovie.directors[0];
-    questionText.textContent = `Qui a réalisé "${currentMovie.title}" ?`;
-
-    // On crée des fausses réponses arbitraires pour l'exemple (tu pourras les complexifier plus tard)
-    let choices = [realDirector, "Steven Spielberg", "Christopher Nolan", "Martin Scorsese"];
-    
-    // Petite astuce pour mélanger le tableau (pour que la bonne réponse ne soit pas toujours la première)
-    choices = choices.sort(() => Math.random() - 0.5);
-
-    // On crée les 4 boutons
-    choices.forEach(choice => {
-        const btn = document.createElement('button');
-        btn.textContent = choice;
-        
-        btn.addEventListener('click', function() {
-            // Désactiver tous les boutons après le clic du joueur
-            Array.from(answersContainer.children).forEach(b => b.disabled = true);
-            
-            if (choice === realDirector) {
-                this.classList.add('correct'); // Devient vert
-            } else {
-                this.classList.add('wrong'); // Devient rouge
-                // On montre quand même la bonne réponse en vert
-                Array.from(answersContainer.children).find(b => b.textContent === realDirector).classList.add('correct');
-            }
-            
-            nextBtn.textContent = "Rejouer avec un autre film";
-            nextBtn.classList.remove('hidden');
-        });
-        
-        answersContainer.appendChild(btn);
+    // Réinitialiser les champs textes pour une nouvelle partie
+    document.querySelectorAll('.input-group input').forEach(input => {
+        input.value = '';
+        input.classList.remove('correct-field', 'wrong-field');
+        input.disabled = false;
     });
+    
+    document.getElementById('validateBtn').classList.remove('hidden');
+    document.getElementById('resultArea').classList.add('hidden');
+    document.getElementById('nextBtn').classList.add('hidden');
+    document.getElementById('correctionArea').innerHTML = '';
 }
 
-// 6. Action du bouton "Suivant"
+// Fonction utilitaire : vérifie si le texte tapé est contenu dans la vraie réponse (ex: "nolan" dans "Christopher Nolan")
+function checkAnswer(userInput, correctAnswersArray) {
+    if(!userInput.trim()) return false;
+    const user = userInput.toLowerCase().trim();
+    return correctAnswersArray.some(ans => ans.toLowerCase().includes(user));
+}
+
+// 5. Validation des 5 champs
+document.getElementById('validateBtn').addEventListener('click', () => {
+    let score = 0;
+    let total = 5; // Note sur 5 points maximum
+    let corrections = [];
+
+    const iDir = document.getElementById('ans-director');
+    const iAct1 = document.getElementById('ans-actor1');
+    const iAct2 = document.getElementById('ans-actor2');
+    const iYear = document.getElementById('ans-year');
+    const iGenre = document.getElementById('ans-genre');
+
+    // Bloquer les champs
+    [iDir, iAct1, iAct2, iYear, iGenre].forEach(i => i.disabled = true);
+    document.getElementById('validateBtn').classList.add('hidden');
+
+    // -- 1. Vérification du Réalisateur
+    if(currentMovie.directors && currentMovie.directors.length > 0) {
+        if(checkAnswer(iDir.value, currentMovie.directors)) {
+            iDir.classList.add('correct-field'); score++;
+        } else {
+            iDir.classList.add('wrong-field');
+            corrections.push(`Réalisateur : <span class="text-green">${currentMovie.directors.join(', ')}</span>`);
+        }
+    } else { total--; } // Si le film n'a pas de réal dans la base, on retire ce point du total
+
+    // -- 2 et 3. Vérification des Acteurs
+    let validActors = currentMovie.actors || [];
+    if(validActors.length > 0) {
+        // Acteur 1
+        if(checkAnswer(iAct1.value, validActors)) {
+            iAct1.classList.add('correct-field'); score++;
+        } else { iAct1.classList.add('wrong-field'); }
+        
+        // Acteur 2 (Il faut vérifier que le joueur n'a pas tapé 2 fois le même nom)
+        let v1 = iAct1.value.trim().toLowerCase();
+        let v2 = iAct2.value.trim().toLowerCase();
+        if(v2 !== "" && v1 !== v2 && checkAnswer(iAct2.value, validActors)) {
+            iAct2.classList.add('correct-field'); score++;
+        } else { iAct2.classList.add('wrong-field'); }
+        
+        if(!iAct1.classList.contains('correct-field') || !iAct2.classList.contains('correct-field')) {
+            corrections.push(`Acteurs possibles : <span class="text-green">${validActors.slice(0,4).join(', ')}</span>`);
+        }
+    } else { total -= 2; }
+
+    // -- 4. Vérification de l'Année
+    if(currentMovie.release_date && currentMovie.release_date !== "Inconnue") {
+        const realYear = currentMovie.release_date.split('-')[0]; // Extrait juste l'année
+        if(iYear.value.trim() === realYear) {
+            iYear.classList.add('correct-field'); score++;
+        } else {
+            iYear.classList.add('wrong-field');
+            corrections.push(`Année de sortie : <span class="text-green">${realYear}</span>`);
+        }
+    } else { total--; }
+
+    // -- 5. Vérification du Genre
+    if(currentMovie.genres && currentMovie.genres.length > 0) {
+        if(checkAnswer(iGenre.value, currentMovie.genres)) {
+            iGenre.classList.add('correct-field'); score++;
+        } else {
+            iGenre.classList.add('wrong-field');
+            corrections.push(`Genres : <span class="text-green">${currentMovie.genres.join(', ')}</span>`);
+        }
+    } else { total--; }
+
+    // -- Affichage du bilan final
+    const resArea = document.getElementById('resultArea');
+    resArea.classList.remove('hidden');
+    document.getElementById('scoreText').textContent = `Score : ${score} / ${total}`;
+    
+    const corrArea = document.getElementById('correctionArea');
+    if(corrections.length > 0) {
+        corrArea.innerHTML = `<p>Corrections :</p>` + corrections.map(c => `<p>👉 ${c}</p>`).join('');
+    } else {
+        corrArea.innerHTML = `<p class="text-green" style="font-size: 1.2em;">Un sans-faute, bravo ! 🍿</p>`;
+    }
+
+    document.getElementById('nextBtn').classList.remove('hidden');
+});
+
+// 6. Retour à l'accueil
 document.getElementById('nextBtn').addEventListener('click', () => {
-    // Pour l'instant, on recharge simplement la page pour recommencer
-    location.reload(); 
+    document.getElementById('quizContainer').classList.add('hidden');
+    document.getElementById('homeMenu').classList.remove('hidden');
 });

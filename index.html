@@ -8,27 +8,55 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎬 Movie Quiz</h1>
-        <p>Cherche un film pour tester tes connaissances !</p>
+        <h1 class="glow-title">🎬 Movie Quiz</h1>
+        <p class="subtitle">Cherche un film ou laisse le hasard décider !</p>
 
-        <div class="search-container">
+        <div id="homeMenu" class="search-container">
             <input type="text" id="searchInput" placeholder="Titre du film (ex: Matrix)..." autocomplete="off">
             <ul id="searchResults" class="results-list hidden"></ul>
+            
+            <div class="divider">ou</div>
+            
+            <button id="randomBtn" class="btn-orange">🎲 Film au hasard</button>
         </div>
 
         <div id="quizContainer" class="hidden">
             <div class="movie-header">
-                <img id="moviePoster" src="" alt="Affiche du film">
-                <h2 id="movieTitle">Titre du film</h2>
+                <img id="moviePoster" src="" alt="Affiche du film" onerror="this.src='https://via.placeholder.com/300x450/222222/ff8c00?text=Pas+d\'affiche'">
+                <h2 id="movieTitle" class="glow-text">Titre du film</h2>
             </div>
             
             <div id="questionArea">
-                <h3 id="questionText">La question apparaitra ici</h3>
-                <div id="answersContainer" class="answers-grid">
-                    </div>
+                <div class="input-group">
+                    <label>Réalisateur(s) :</label>
+                    <input type="text" id="ans-director" placeholder="Nom du réalisateur...">
+                </div>
+                <div class="input-group">
+                    <label>Cite un acteur/actrice du film :</label>
+                    <input type="text" id="ans-actor1" placeholder="Acteur 1...">
+                </div>
+                <div class="input-group">
+                    <label>Cite un autre acteur/actrice :</label>
+                    <input type="text" id="ans-actor2" placeholder="Acteur 2...">
+                </div>
+                <div class="input-group">
+                    <label>Année de sortie :</label>
+                    <input type="number" id="ans-year" placeholder="Ex: 1999">
+                </div>
+                <div class="input-group">
+                    <label>Genre principal :</label>
+                    <input type="text" id="ans-genre" placeholder="Ex: Action, Comédie...">
+                </div>
+
+                <button id="validateBtn" class="btn-orange mt-20">✅ Valider mes réponses</button>
+                
+                <div id="resultArea" class="hidden">
+                    <h3 id="scoreText" class="glow-text"></h3>
+                    <div id="correctionArea"></div>
+                </div>
             </div>
             
-            <button id="nextBtn" class="hidden">Question suivante</button>
+            <button id="nextBtn" class="btn-orange hidden mt-20">Rejouer un film</button>
         </div>
     </div>
 
